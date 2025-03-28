@@ -778,6 +778,7 @@ name = "eternity-sc"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "bytemuck",
 ]
 
 [[package]]

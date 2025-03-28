@@ -1,12 +1,15 @@
 use anchor_lang::prelude::*;
+use bytemuck::{Pod, Zeroable};
 
-declare_id!("3zxFMG7wjw3RNe4fgrZ258ppxWUt4S5b6g2pugkd3jhd");
+declare_id!("HU3pMs7p5d3mrz1MYjkiWtXEGA2PXUTWT7tkBN1rtjum");
 
 const STORAGE_LAMPORT: u64 = 100;
 const TOKEN_LAMPORT: u64 = 10;
 
 #[program]
 pub mod eternity_sc {
+    use std::thread::LocalKey;
+
     use super::*;
 
     // PROFILE INSTRUCTIONS
@@ -49,11 +52,11 @@ pub mod eternity_sc {
 
         locker.set_inner(Locker {
             id: locker_id,
-            storage_pointers: None,
+            storage_pointers: Vec::new(),
             current_size: 0.0,
-            max_size: amount,
             data_count: 0,
-            next_locker: None,
+            max_size: amount,
+            next_locker: Pubkey::default()
         });
 
         Ok(())
@@ -72,7 +75,7 @@ pub mod eternity_sc {
         Ok(())
     }
 
-    pub fn add_storage_pointer(ctx: Context<AddStoragePointer>, _locker_id: u64, data: StoragePointer) -> Result<()> {
+    pub fn add_storage_pointer(ctx: Context<AddStoragePointer>, _locker_id: u64, pointer: Pubkey) -> Result<()> {
         let locker = &mut ctx.accounts.locker;
 
         // check if locker is full
@@ -80,12 +83,28 @@ pub mod eternity_sc {
             return Err(CustomErrorCode::LockerLimitExceeded.into())
         }
 
-        // add storage pointer
-        if let Some(storage_pointers) = locker.storage_pointers.as_mut() {
-            storage_pointers.push(data);
-        } else {
-            locker.storage_pointers = Some(vec![data]);
+        if (locker.data_count < 512) {
+            let rent = Rent::get()?;
+            let new_size = 8 + Locker::INIT_SPACE + (locker.storage_pointers.len() + 1) * 32;
+            let additional_rent = rent.minimum_balance(new_size) - rent.minimum_balance(locker.to_account_info().data_len());
+
+            transfer_lamports(
+                &ctx.accounts.signer,
+                &locker.to_account_info(),
+                additional_rent,
+                &ctx.accounts.system_program
+            )?;
+
+            locker.to_account_info().realloc(new_size, false);
         }
+        
+        if (locker.data_count % 512 == 0) {
+            locker.storage_pointers.clear();
+        }
+        
+        // add storage pointer
+        locker.storage_pointers.push(pointer);
+        locker.data_count += 1;
 
         Ok(())
     }
@@ -115,7 +134,30 @@ pub enum CustomErrorCode {
     StoragePointerGroupLimitExceeded,
 }
 
-// PROFILE DEFINITIONS
+// Helper Function
+fn transfer_lamports<'info>(
+    from: &Signer<'info>,
+    to: &AccountInfo<'info>,
+    amount: u64,
+    system_program: &Program<'info, System>,
+) -> Result<()> {
+    anchor_lang::solana_program::program::invoke(
+        &anchor_lang::solana_program::system_instruction::transfer(
+            from.key,
+            to.key,
+            amount,
+        ),
+        &[
+            from.to_account_info(),
+            to.clone(),
+            system_program.to_account_info(),
+        ],
+    )?;
+    Ok(())
+}
+
+// ACCOUNT DEFINITIONS
+
 #[derive(Accounts)]
 pub struct InitProfile<'info> {
     #[account(mut)]
@@ -156,19 +198,6 @@ pub struct ProfileData {
     pub message: String,
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct Profile {
-    #[max_len(50)]
-    pub name: String,
-    pub age: u8,
-    #[max_len(5,50)]
-    pub hobbie: Vec<String>,
-    #[max_len(250)]
-    pub message: String,
-}
-
-// LOCKER DEFINITIONS
 #[derive(Accounts)]
 #[instruction(locker_id: u64)]
 pub struct InitLocker<'info> {
@@ -203,19 +232,6 @@ pub struct BuyLocker<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct Locker {
-    pub id: u64,
-    #[max_len(100)]
-    pub storage_pointers: Option<Vec<StoragePointer>>,
-    pub current_size: f32,
-    pub max_size: u16,
-    pub data_count: u16,
-    pub next_locker: Option<Pubkey>
-}
-
-// STORAGE POINTER DEFINITIONS
 #[derive(Accounts)]
 #[instruction(locker_id: u64)]
 pub struct AddStoragePointer<'info> {
@@ -224,6 +240,9 @@ pub struct AddStoragePointer<'info> {
 
     #[account(
         mut,
+        // realloc = 8 + Locker::INIT_SPACE + ((locker.storage_pointers.len() + 1) * 32),
+        // realloc::payer = signer,
+        // realloc::zero = false,
         seeds = [b"locker", signer.key().as_ref(), locker_id.to_le_bytes().as_ref()],
         bump
     )]
@@ -232,22 +251,44 @@ pub struct AddStoragePointer<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
-pub struct StoragePointer {
+// DATA STRUCT ACCOUNT DEFINITIONS
+
+#[account]
+#[derive(InitSpace)]
+pub struct Profile {
     #[max_len(50)]
-    pub name: String, 
-    pub file_type: FileType,
-    #[max_len(200)]
-    pub link: String, 
-    pub size: f32,
+    pub name: String,
+    pub age: u8,
+    #[max_len(5,50)]
+    pub hobbie: Vec<String>,
+    #[max_len(250)]
+    pub message: String,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
-pub enum FileType {
-    Document,
-    Text,
-    Image,
-    Video,
-    Audio,
-    Other,
+#[account]
+#[derive(InitSpace)]
+pub struct Locker {
+    pub id: u64,
+    #[max_len(1)]
+    pub storage_pointers: Vec<Pubkey>,
+    pub current_size: f32,
+    pub max_size: u16,
+    pub data_count: u16,
+    pub next_locker: Pubkey
+}
+
+// #[account]
+// #[derive(InitSpace)]
+// pub struct StoragePointerBatch {
+//     pub batch_id: u64,
+//     pub locker: Pubkey,
+//     pub pointers: Vec<StoragePointer>,
+// }
+
+#[derive(InitSpace)]
+pub struct StoragePointer {
+    pub name: [u8; 50], 
+    pub file_type: u8,
+    pub link: [u8; 200], 
+    pub size: f32,
 }
