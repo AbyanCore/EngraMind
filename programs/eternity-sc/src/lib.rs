@@ -1,110 +1,282 @@
 use anchor_lang::prelude::*;
-use bytemuck::{Pod, Zeroable};
 
-declare_id!("HU3pMs7p5d3mrz1MYjkiWtXEGA2PXUTWT7tkBN1rtjum");
+declare_id!("GWgEbF6ewumjA5ZSgxWbBjDKJhdZ6GyxKQJZmyjGFADF");
 
-const STORAGE_LAMPORT: u64 = 100;
 const TOKEN_LAMPORT: u64 = 10;
 
 #[program]
 pub mod eternity_sc {
-    use std::thread::LocalKey;
 
     use super::*;
 
-    // PROFILE INSTRUCTIONS
-    pub fn init_profile(ctx: Context<InitProfile>, data: ProfileData) -> Result<()> {
-        let profile = &mut ctx.accounts.profile;
+    pub fn create_profile(ctx: Context<CreateProfile>,data: Profile) -> Result<()> {
+        let profile = &mut  ctx.accounts.profile;
 
-        profile.set_inner(Profile {
-            name: data.name,
-            age: data.age,
-            hobbie: data.hobbie,
-            message: data.message,
-        });
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == profile.owner,
+            CustomErrorCode::UnAuthorized
+        );
 
-        msg!("Profile initialized with data : \nName: {}\nAge: {}\nHobbie: {:?}\nMessage: {}", profile.name, profile.age, profile.hobbie, profile.message);
-        Ok(())
-    }
-
-    pub fn update_profile(ctx: Context<UpdateProfile>, data: ProfileData) -> Result<()> {
-        let profile = &mut ctx.accounts.profile;
-
-        profile.set_inner(Profile {
-            name: data.name,
-            age: data.age,
-            hobbie: data.hobbie,
-            message: data.message,
-        });
-
-        msg!("Profile updated with data : \nName: {}\nAge: {}\nHobbie: {:?}\nMessage: {}", profile.name, profile.age, profile.hobbie, profile.message);
-        Ok(())
-    }
-
-    // LOCKER INSTRUCTIONS
-    pub fn init_locker(ctx: Context<InitLocker>,locker_id: u64, amount: u16) -> Result<()> {
-        let locker = &mut ctx.accounts.locker;
+        // Validate Data
+        require!(
+            data.validate(),
+            CustomErrorCode::DataNotValid
+        );
         
-        // check lamport and cut
-        if ctx.accounts.signer.as_ref().lamports() < ((amount as u64) * STORAGE_LAMPORT){
-            return Err(ProgramError::InsufficientFunds.into())
-        }
+        // Set Data
+        profile.set_inner(Profile {
+            owner: ctx.accounts.signer.key(),
+            name: data.name,
+            age: data.age,
+            hobbie: data.hobbie,
+            message: data.message
+        });
 
+        Ok(())
+    }
+
+    pub fn update_profile(ctx: Context<UpdateProfile>,data: Profile) -> Result<()> {
+        let profile = &mut  ctx.accounts.profile;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == profile.owner,
+            CustomErrorCode::UnAuthorized
+        );
+
+        // Validate Data
+        require!(
+            data.validate(),
+            CustomErrorCode::DataNotValid
+        );
+        
+        // Set Data
+        profile.set_inner(Profile {
+            owner: ctx.accounts.signer.key(),
+            name: data.name,
+            age: data.age,
+            hobbie: data.hobbie,
+            message: data.message
+        });
+        
+        Ok(())
+    }
+
+    pub fn create_locker(ctx: Context<CreateLocker>,locker_id: u32,name: String, description: String) -> Result<()> {
+        let locker = &mut  ctx.accounts.locker;
+        
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == locker.owner,
+            CustomErrorCode::UnAuthorized
+        );
+
+        // Validate Data
+        require!(
+            Locker::validate(&name, &description),
+            CustomErrorCode::DataNotValid
+        );
+        
+        // Set Data
         locker.set_inner(Locker {
+            owner: ctx.accounts.signer.key(),
             id: locker_id,
-            storage_pointers: Vec::new(),
-            current_size: 0.0,
+            name: name,
+            description: description,
             data_count: 0,
-            max_size: amount,
-            next_locker: Pubkey::default()
+            size: 0,
+            storage_pointer: None,
+            visibility: false
+        });
+        
+        Ok(())
+    }
+    
+    pub fn update_locker(ctx: Context<UpdateLocker>,_locker_id: u32,name: String, description: String, visibillity: bool) -> Result<()> {
+        let locker = &mut  ctx.accounts.locker;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == locker.owner,
+            CustomErrorCode::UnAuthorized
+        );
+
+        // Validate Data
+        require!(
+            Locker::validate(&name, &description),
+            CustomErrorCode::DataNotValid
+        );
+        
+        // Set Data
+        locker.name = name;
+        locker.description = description;
+        locker.visibility = visibillity;
+        
+        Ok(())
+    }
+
+    pub fn create_sp(ctx: Context<CreateSP>,locker_id: u32,sp_id: u32) -> Result<()> {
+        let locker = &mut  ctx.accounts.locker;
+        let sp = &mut ctx.accounts.storage_pointer;
+        let account_info = &ctx.accounts.old_storage_pointer;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == locker.owner,
+            CustomErrorCode::UnAuthorized
+        );
+
+        sp.id = sp_id;
+        sp.owner = ctx.accounts.signer.key();
+        sp.locker_id = locker_id;
+
+        if locker.storage_pointer.is_some() {
+            sp.next_sp = Some(account_info.key());
+        }
+
+        locker.storage_pointer = Some(sp.key());
+        
+        Ok(())
+    }
+    
+    pub fn add_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, key: [u8; 32]) -> Result<()> {
+        let storage_pointer = &mut ctx.accounts.storage_pointer;
+        let locker = &mut ctx.accounts.locker;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == locker.owner || ctx.accounts.signer.key() == storage_pointer.owner,
+            CustomErrorCode::UnAuthorized
+        );
+        
+        if storage_pointer.data_count >= 500 {
+            return err!(CustomErrorCode::StoragePointerGroupLimitExceeded);
+        }
+        
+        let (new_size, addtional_rent) = calculate_rent_and_size(
+            storage_pointer.to_account_info().data_len(),
+            8 + StoragePointer::INIT_SPACE + (storage_pointer.data_count + 1) as usize * 32
+        )?;
+        
+        transfer_lamports(
+            &ctx.accounts.signer.to_account_info(), 
+            storage_pointer.as_ref(), 
+            addtional_rent, 
+            &ctx.accounts.system_program,
+            false
+        )?;
+        
+        storage_pointer.to_account_info().realloc(new_size, false)?;
+        
+        storage_pointer.data.push(key);
+        storage_pointer.data_count += 1;
+        locker.data_count += 1;
+        
+        Ok(())
+    }
+
+    pub fn update_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
+        let storage_pointer = &mut ctx.accounts.storage_pointer;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == storage_pointer.owner,
+            CustomErrorCode::UnAuthorized
+        );
+        
+        if storage_pointer.data_count <= id {
+            return err!(CustomErrorCode::StoragePointerGroupNotFound)
+        }
+
+        storage_pointer.data[id as usize] = key;
+        
+        Ok(())
+    }
+    
+    pub fn delete_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, id: u16) -> Result<()> {
+        let storage_pointer = &mut ctx.accounts.storage_pointer;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == storage_pointer.owner,
+            CustomErrorCode::UnAuthorized
+        );
+        
+        if storage_pointer.data_count <= id {
+            return err!(CustomErrorCode::StoragePointerGroupNotFound)
+        }
+
+        storage_pointer.data[id as usize] = [0u8; 32];
+        Ok(())
+    }
+
+    pub fn create_vault(ctx: Context<CreateVault>) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+
+        vault.set_inner(Vault {
+            owner: ctx.accounts.signer.key(),
+            token: 0
         });
 
         Ok(())
     }
 
-    pub fn buy_more_storage(ctx: Context<BuyLocker>, _locker_id: u64, amount: u16) -> Result<()> {
-        let locker = &mut ctx.accounts.locker;
+    pub fn buy_token(ctx: Context<ManageVault>,amount: u64) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let vault_lamport = &mut ctx.accounts.vault_lamport;
+
+        // check ownership
+        require!(
+            ctx.accounts.signer.key() == vault.owner,
+            CustomErrorCode::UnAuthorized
+        );
+
+        // check user lamport
+        require!(
+            ctx.accounts.signer.clone().to_account_info().lamports() > amount,
+            CustomErrorCode::LamportNotEnough
+        );
+
+        vault.token += amount * TOKEN_LAMPORT;
+
+        transfer_lamports(
+            &ctx.accounts.signer.to_account_info(), 
+            &vault_lamport.to_account_info(), 
+            amount,
+            &ctx.accounts.system_program,
+            false
+        )?;
         
-        // check lamport and cut
-        if ctx.accounts.signer.as_ref().lamports() < ((amount as u64) * STORAGE_LAMPORT){
-            return Err(ProgramError::InsufficientFunds.into())
-        }
-
-        locker.max_size += amount;
-
         Ok(())
     }
 
-    pub fn add_storage_pointer(ctx: Context<AddStoragePointer>, _locker_id: u64, pointer: Pubkey) -> Result<()> {
-        let locker = &mut ctx.accounts.locker;
+    pub fn take_token(ctx: Context<ManageVault>, amount: u64) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        let vault_lamport = &mut ctx.accounts.vault_lamport;
 
-        // check if locker is full
-        if locker.current_size >= locker.max_size as f32 {
-            return Err(CustomErrorCode::LockerLimitExceeded.into())
-        }
+        // check ownership
+        require!(
+            ctx.accounts.signer.key() == vault.owner,
+            CustomErrorCode::UnAuthorized
+        );
 
-        if (locker.data_count < 512) {
-            let rent = Rent::get()?;
-            let new_size = 8 + Locker::INIT_SPACE + (locker.storage_pointers.len() + 1) * 32;
-            let additional_rent = rent.minimum_balance(new_size) - rent.minimum_balance(locker.to_account_info().data_len());
+        // check vault lamport
+        require!(
+            vault_lamport.to_account_info().lamports() > amount && 
+            vault.token / TOKEN_LAMPORT > amount,
+            CustomErrorCode::LamportNotEnough
+        );
 
-            transfer_lamports(
-                &ctx.accounts.signer,
-                &locker.to_account_info(),
-                additional_rent,
-                &ctx.accounts.system_program
-            )?;
+        vault.token -= amount * TOKEN_LAMPORT;
 
-            locker.to_account_info().realloc(new_size, false);
-        }
-        
-        if (locker.data_count % 512 == 0) {
-            locker.storage_pointers.clear();
-        }
-        
-        // add storage pointer
-        locker.storage_pointers.push(pointer);
-        locker.data_count += 1;
+        transfer_lamports(
+            &vault_lamport.to_account_info(), 
+            &ctx.accounts.signer.to_account_info(), 
+            amount,
+            &ctx.accounts.system_program,
+            true
+        )?;
 
         Ok(())
     }
@@ -114,52 +286,104 @@ pub mod eternity_sc {
 // Error codes
 #[error_code]
 pub enum CustomErrorCode {
-    #[msg("Profile Not Found")]
+    #[msg("The specified profile could not be found.")]
     ProfileNotFound,
-    #[msg("Profile Not Found")]
+    #[msg("A profile with the same identifier already exists.")]
     ProfileAlreadyExists,
     
-    #[msg("Profile Not Found")]
+    #[msg("The specified locker could not be found.")]
     LockerNotFound,
-    #[msg("Profile Not Found")]
+    #[msg("A locker with the same identifier already exists.")]
     LockerAlreadyExists,
-    #[msg("Profile Not Found")]
+    #[msg("The maximum number of lockers has been exceeded.")]
     LockerLimitExceeded,
     
-    #[msg("Profile Not Found")]
+    #[msg("The specified storage pointer group could not be found.")]
     StoragePointerGroupNotFound,
-    #[msg("Profile Not Found")]
+    #[msg("A storage pointer group with the same identifier already exists.")]
     StoragePointerGroupAlreadyExists,
-    #[msg("Profile Not Found")]
+    #[msg("The maximum number of storage pointer groups has been exceeded.")]
     StoragePointerGroupLimitExceeded,
+    
+    #[msg("The provided input data is not valid.")]
+    DataNotValid,
+
+    #[msg("Not Authorized")]
+    UnAuthorized,
+    #[msg("Not Enough Lamport or SOL")]
+    LamportNotEnough
 }
 
 // Helper Function
 fn transfer_lamports<'info>(
-    from: &Signer<'info>,
+    from: &AccountInfo<'info>,
     to: &AccountInfo<'info>,
     amount: u64,
     system_program: &Program<'info, System>,
+    from_pda: bool
 ) -> Result<()> {
-    anchor_lang::solana_program::program::invoke(
-        &anchor_lang::solana_program::system_instruction::transfer(
-            from.key,
-            to.key,
-            amount,
-        ),
-        &[
-            from.to_account_info(),
-            to.clone(),
-            system_program.to_account_info(),
-        ],
-    )?;
+
+    let ix = &anchor_lang::solana_program::system_instruction::transfer(
+        from.key,
+        to.key,
+        amount,
+    );
+
+    match from_pda {
+        true => {
+            from.sub_lamports(amount)?;
+            to.add_lamports(amount)?;
+        }
+        false => {
+            anchor_lang::solana_program::program::invoke(
+                ix,
+                &[
+                    from.clone(),
+                    to.clone(),
+                    system_program.to_account_info().clone(),
+                ],
+            )?;
+        }
+    }
     Ok(())
 }
 
+fn calculate_rent_and_size(
+    current_data_len: usize,
+    new_data_len: usize,
+) -> Result<(usize, u64)> {
+    let rent = Rent::get()?;
+    let additional_rent = rent.minimum_balance(new_data_len) - rent.minimum_balance(current_data_len);
+    Ok((new_data_len, additional_rent))
+}
+
 // ACCOUNT DEFINITIONS
+#[account]
+#[derive(InitSpace)]
+pub struct Profile {
+    pub owner: Pubkey,
+    #[max_len(100)]
+    pub name: String,
+    pub age: u16,
+    #[max_len(5,100)]
+    pub hobbie: Vec<String>,
+    #[max_len(300)]
+    pub message: String,
+}
+
+impl Profile {
+    fn validate(&self) -> bool {
+        // check name
+        self.name.len() <= 100 &&
+        // check hobbie length and individual hobbie lengths
+        self.hobbie.len() <= 5 && self.hobbie.iter().all(|h| h.len() <= 100) &&
+        // check message
+        self.message.len() <= 300
+    }
+}
 
 #[derive(Accounts)]
-pub struct InitProfile<'info> {
+pub struct CreateProfile<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
@@ -167,12 +391,11 @@ pub struct InitProfile<'info> {
         init,
         payer = signer,
         space = 8 + Profile::INIT_SPACE,
-        seeds = [b"profile", signer.key().as_ref()],
+        seeds = [b"profile", signer.key.as_ref()],
         bump
     )]
     pub profile: Account<'info, Profile>,
-
-    pub system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]
@@ -182,25 +405,40 @@ pub struct UpdateProfile<'info> {
 
     #[account(
         mut,
-        seeds = [b"profile", signer.key().as_ref()],
+        seeds = [b"profile", signer.key.as_ref()],
         bump
     )]
     pub profile: Account<'info, Profile>,
-
-    pub system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>
 }
 
-#[derive(AnchorSerialize,AnchorDeserialize, Clone)]
-pub struct ProfileData {
+#[account]
+#[derive(InitSpace)]
+pub struct Locker {
+    pub owner: Pubkey,
+    pub id: u32,
+    #[max_len(50)]
     pub name: String,
-    pub age: u8,
-    pub hobbie: Vec<String>,
-    pub message: String,
+    #[max_len(300)]
+    pub description: String,
+    pub data_count: u64,
+    pub size: u32,
+    pub visibility: bool,
+    pub storage_pointer: Option<Pubkey>
+}
+
+impl Locker {
+    fn validate(name: &String, description: &String) -> bool {
+        // check name
+        name.len() <= 100 ||
+        // check description
+        description.len() <= 300
+    }
 }
 
 #[derive(Accounts)]
-#[instruction(locker_id: u64)]
-pub struct InitLocker<'info> {
+#[instruction(locker_id: u32)]
+pub struct CreateLocker<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
@@ -208,87 +446,145 @@ pub struct InitLocker<'info> {
         init,
         payer = signer,
         space = 8 + Locker::INIT_SPACE,
-        seeds = [b"locker", signer.key().as_ref(), locker_id.to_le_bytes().as_ref()],
+        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
         bump
     )]
     pub locker: Account<'info, Locker>,
-
-    pub system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]
-#[instruction(locker_id: u64)]
-pub struct BuyLocker<'info> {
+#[instruction(locker_id: u32)]
+pub struct UpdateLocker<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"locker", signer.key().as_ref(), locker_id.to_le_bytes().as_ref()],
+        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
         bump
     )]
     pub locker: Account<'info, Locker>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(locker_id: u64)]
-pub struct AddStoragePointer<'info> {
-    #[account(mut)]
-    pub signer: Signer<'info>,
-
-    #[account(
-        mut,
-        // realloc = 8 + Locker::INIT_SPACE + ((locker.storage_pointers.len() + 1) * 32),
-        // realloc::payer = signer,
-        // realloc::zero = false,
-        seeds = [b"locker", signer.key().as_ref(), locker_id.to_le_bytes().as_ref()],
-        bump
-    )]
-    pub locker: Account<'info, Locker>,
-
-    pub system_program: Program<'info, System>,
-}
-
-// DATA STRUCT ACCOUNT DEFINITIONS
-
-#[account]
-#[derive(InitSpace)]
-pub struct Profile {
-    #[max_len(50)]
-    pub name: String,
-    pub age: u8,
-    #[max_len(5,50)]
-    pub hobbie: Vec<String>,
-    #[max_len(250)]
-    pub message: String,
+    pub system_program: Program<'info, System>
 }
 
 #[account]
-#[derive(InitSpace)]
-pub struct Locker {
-    pub id: u64,
-    #[max_len(1)]
-    pub storage_pointers: Vec<Pubkey>,
-    pub current_size: f32,
-    pub max_size: u16,
-    pub data_count: u16,
-    pub next_locker: Pubkey
-}
-
-// #[account]
-// #[derive(InitSpace)]
-// pub struct StoragePointerBatch {
-//     pub batch_id: u64,
-//     pub locker: Pubkey,
-//     pub pointers: Vec<StoragePointer>,
-// }
-
 #[derive(InitSpace)]
 pub struct StoragePointer {
-    pub name: [u8; 50], 
-    pub file_type: u8,
-    pub link: [u8; 200], 
-    pub size: f32,
+    pub owner: Pubkey,
+    pub locker_id: u32,
+    pub id: u32,
+    #[max_len(1)]
+    pub data: Vec<[u8; 32]>,
+    pub data_count: u16,
+    pub next_sp: Option<Pubkey>
+}
+
+#[derive(Accounts)]
+#[instruction(locker_id: u32,sp_id: u32)]
+pub struct CreateSP<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = signer,
+        space = 8 + StoragePointer::INIT_SPACE,
+        seeds = [b"sp", signer.key.as_ref(), locker_id.to_le_bytes().as_ref(), sp_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub storage_pointer: Account<'info, StoragePointer>,
+
+    /// CHECK: Akun ini digunakan untuk menunjuk SP lama jika ada.
+    #[account(mut)]
+    pub old_storage_pointer: AccountInfo<'info>,
+    
+    #[account(
+        mut,
+        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub locker: Account<'info, Locker>,
+    
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
+#[instruction(locker_id: u32,sp_id: u32)]
+pub struct ManageSP<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"sp", signer.key.as_ref(), locker_id.to_le_bytes().as_ref(), sp_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub storage_pointer: Account<'info, StoragePointer>,
+    
+    #[account(
+        mut,
+        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub locker: Account<'info, Locker>,
+    
+    pub system_program: Program<'info, System>
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Vault {
+    pub owner: Pubkey,
+    pub token: u64,
+}
+
+#[account]
+pub struct VaultLamport;
+
+#[derive(Accounts)]
+pub struct CreateVault<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = signer,
+        space = 8 + Vault::INIT_SPACE,
+        seeds = [b"vault", signer.key.as_ref()],
+        bump
+    )]
+    pub vault: Account<'info, Vault>,
+
+    #[account(
+        init,
+        payer = signer,
+        space = 8,
+        seeds = [b"vault_lamport", signer.key.as_ref()],
+        bump
+    )]
+    pub vault_lamport: Account<'info, VaultLamport>,
+
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
+pub struct ManageVault<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", signer.key.as_ref()],
+        bump
+    )]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        mut,
+        seeds = [b"vault_lamport", signer.key.as_ref()],
+        bump
+    )]
+    pub vault_lamport: Account<'info, VaultLamport>,
+
+    pub system_program: Program<'info, System>
 }

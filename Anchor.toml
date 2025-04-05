@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-eternity_sc = "HU3pMs7p5d3mrz1MYjkiWtXEGA2PXUTWT7tkBN1rtjum"
+eternity_sc = "GWgEbF6ewumjA5ZSgxWbBjDKJhdZ6GyxKQJZmyjGFADF"
 
 [registry]
 url = "https://api.apr.dev"
