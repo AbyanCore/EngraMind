@@ -9,34 +9,28 @@ pub mod eternity_sc {
 
     use super::*;
 
-    pub fn create_profile(ctx: Context<CreateProfile>,data: Profile) -> Result<()> {
+    pub fn create_profile(ctx: Context<CreateProfile>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
         let profile = &mut  ctx.accounts.profile;
-
-        // check ownership 
-        require!(
-            ctx.accounts.signer.key() == profile.owner,
-            CustomErrorCode::UnAuthorized
-        );
 
         // Validate Data
         require!(
-            data.validate(),
+            Profile::validate(&name, &hobbie, &message),
             CustomErrorCode::DataNotValid
         );
         
         // Set Data
         profile.set_inner(Profile {
             owner: ctx.accounts.signer.key(),
-            name: data.name,
-            age: data.age,
-            hobbie: data.hobbie,
-            message: data.message
+            name: name,
+            age: age,
+            hobbie: hobbie,
+            message: message
         });
 
         Ok(())
     }
 
-    pub fn update_profile(ctx: Context<UpdateProfile>,data: Profile) -> Result<()> {
+    pub fn update_profile(ctx: Context<UpdateProfile>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
         let profile = &mut  ctx.accounts.profile;
 
         // check ownership 
@@ -47,17 +41,17 @@ pub mod eternity_sc {
 
         // Validate Data
         require!(
-            data.validate(),
+            Profile::validate(&name, &hobbie, &message),
             CustomErrorCode::DataNotValid
         );
         
         // Set Data
         profile.set_inner(Profile {
             owner: ctx.accounts.signer.key(),
-            name: data.name,
-            age: data.age,
-            hobbie: data.hobbie,
-            message: data.message
+            name: name,
+            age: age,
+            hobbie: hobbie,
+            message: message
         });
         
         Ok(())
@@ -372,13 +366,13 @@ pub struct Profile {
 }
 
 impl Profile {
-    fn validate(&self) -> bool {
+    fn validate(name: &String, hobbie: &Vec<String>, message: &String) -> bool {
         // check name
-        self.name.len() <= 100 &&
+        name.len() <= 100 &&
         // check hobbie length and individual hobbie lengths
-        self.hobbie.len() <= 5 && self.hobbie.iter().all(|h| h.len() <= 100) &&
+        hobbie.len() <= 5 && hobbie.iter().all(|h| h.len() <= 100) &&
         // check message
-        self.message.len() <= 300
+        message.len() <= 300
     }
 }
 

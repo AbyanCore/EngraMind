@@ -1,63 +1,28 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { EternitySc } from "../target/types/eternity_sc";
-import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { base64, bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { assert } from "chai";
 
-describe("eternity-sc", () => {
+describe("General Test", () => {
   
   // Configure the client to use the local cluster.
   // anchor.setProvider(anchor.AnchorProvider.env())
   
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const program = anchor.workspace.EternitySc as Program<EternitySc>;
-
-  const provider = anchor.getProvider();
-  const wallet = provider.publicKey
-
-  // it("Create Profile", async () => {
-  //   const tx = await program.methods.createProfile({
-  //     name: "Udin Sieagar",
-  //     age: 10,
-  //     hobbie: ["Memasak","Memancing"],
-  //     message:"Aku ingin jadi pemancing handal di masa yang akan datang"
-  //   }).rpc()
-
-  //   console.log("Transaction Signature: ", tx)
-  // })
-
-  // it("Check Profile", async () => {
-  //   const data = await program.account.profile.all()
-
-  //   console.log("Profile: ", data)
-  // })
+  let program: Program<EternitySc>; 
+  let wallet: anchor.web3.PublicKey; 
+  let provider: anchor.Provider;
   
-  // it("Update Profile", async () => {
-  //   const tx = await program.methods.updateProfile({
-  //     name: "Udin Priaty",
-  //     age: 10,
-  //     hobbie: ["Memasak","Memancing","Ngoding","Tidur","Makan"],
-  //     message:"Aku ingin jadi pemancing handal di masa yang akan datang"
-  //   }).rpc()
-
-  //   console.log("Transaction Signature: ", tx)
-  // })
+  it("Initialize Provider", () => {
+      anchor.setProvider(anchor.AnchorProvider.env());
+      program = anchor.workspace.EternitySc as Program<EternitySc>;
+  })
   
-  // it("Check Profile", async () => {
-  //   const data = await program.account.profile.all()
-
-  //   console.log("Profile: ", data)
-  // })
-
-  // it("Create Locker",  async () => {
-  //   const tx = await program.methods.createLocker(
-  //     1,
-  //     "test locker 1",
-  //     "Test Locker Creation 1"
-  //   ).rpc()
-
-  //   console.log("Transaction Signature: ", tx)
-  // })
+  it("Initialize Wallet", () => {
+      provider = anchor.getProvider();
+      wallet = provider.publicKey
+    })
   
   // it("Check All Locker", async () => {
   //   const data = await program.account.locker.all()
@@ -219,26 +184,154 @@ describe("eternity-sc", () => {
   //   console.log("Transaction Signature: ",tx)
   // })
   
-  it("Take Token", async () => {
-    const tx = await program.methods.takeToken(
-      new anchor.BN(1_000_000)
-    ).rpc()
+  // it("Take Token", async () => {
+  //   const tx = await program.methods.takeToken(
+  //     new anchor.BN(1_000_000)
+  //   ).rpc()
 
-    console.log("Transaction Signature: ",tx)
-  })
+  //   console.log("Transaction Signature: ",tx)
+  // })
 
 
-  it("Check Vault", async () => {
-    const data = await program.account.vault.all([
-      {
-        memcmp: {
-          offset: 8,
-          bytes: wallet.toBase58()
-        }
-      }
-    ])
+  // it("Check Vault", async () => {
+  //   const data = await program.account.vault.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     }
+  //   ])
 
-    console.log("vault: ",data)
-  })
+  //   console.log("vault: ",data)
+  // })
 
 });
+
+describe("Profile Test", () => {
+  let program: Program<EternitySc>; 
+  let wallet: Keypair; 
+  let provider: anchor.Provider;
+
+  async function getProfile() {
+    const [profilePda, _] = await PublicKey.findProgramAddressSync(
+      [Buffer.from("profile"), wallet.publicKey.toBuffer()],
+      program.programId
+    )
+    return await program.account.profile.fetch(profilePda)
+  }
+
+  it("Init", async () => {
+    wallet = Keypair.generate()
+    
+    anchor.setProvider({
+      connection: new Connection("http://localhost:8899", "confirmed"),
+      publicKey: wallet.publicKey
+    });
+    program = anchor.workspace.EternitySc as Program<EternitySc>;
+    provider = anchor.getProvider();
+
+    const txAirdrop = await provider.connection.requestAirdrop(wallet.publicKey, LAMPORTS_PER_SOL * 5)
+    const latestBlockHash = await provider.connection.getLatestBlockhash();
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: txAirdrop
+    }, "confirmed")
+    
+  })
+
+  it("Create Profile", async () => {
+    const tx = await program.methods.createProfile(
+      "Udin Sieagar",
+      23,
+      ["Memancing", "Memasak"],
+      "Hello World!"
+    ).accounts({
+      signer: wallet.publicKey
+    }).signers([wallet])
+    .rpc()
+
+    console.log("Transaction Signature: ", tx)
+
+    const data = await getProfile();
+    const mock_data = {
+      owner: wallet.publicKey,
+      name: "Udin Sieagar",
+      age: 23,
+      hobbie: ["Memancing", "Memasak"],
+      message: "Hello World!",
+    }
+
+    assert.deepEqual(data, mock_data, "Data Mismatch")
+  })
+
+  it("Update Profile", async () => {
+    const tx = await program.methods.updateProfile(
+      "Udin Sinaga",
+      24,
+      ["Memancing", "Memasak","Membaca"],
+      "Hello Solana!.."
+    ).accounts({
+      signer: wallet.publicKey
+    }).signers([wallet])
+    .rpc()
+
+    console.log("Transaction Signature: ", tx)
+
+    const data = await getProfile();
+    const mock_data = {
+      owner: wallet.publicKey,
+      name: "Udin Sinaga",
+      age: 24,
+      hobbie: ["Memancing", "Memasak","Membaca"],
+      message: "Hello Solana!..",
+    }
+
+    assert.deepEqual(data, mock_data, "Data Mismatch")
+  })
+
+  
+})
+
+describe("Locker Test", () => {
+  let program: Program<EternitySc>; 
+  let wallet: anchor.web3.PublicKey; 
+  let provider: anchor.Provider;
+  
+  it("Init", () => {
+      anchor.setProvider(anchor.AnchorProvider.env());
+      program = anchor.workspace.EternitySc as Program<EternitySc>;
+      provider = anchor.getProvider();
+      wallet = provider.publicKey
+  })
+  
+})
+
+describe("StoragePointer Test", () => {
+  let program: Program<EternitySc>; 
+  let wallet: anchor.web3.PublicKey; 
+  let provider: anchor.Provider;
+  
+  it("Init", () => {
+      anchor.setProvider(anchor.AnchorProvider.env());
+      program = anchor.workspace.EternitySc as Program<EternitySc>;
+      provider = anchor.getProvider();
+      wallet = provider.publicKey
+  })
+  
+})
+
+describe("Vault Test", () => {
+  let program: Program<EternitySc>; 
+  let wallet: anchor.web3.PublicKey; 
+  let provider: anchor.Provider;
+  
+  it("Init", () => {
+      anchor.setProvider(anchor.AnchorProvider.env());
+      program = anchor.workspace.EternitySc as Program<EternitySc>;
+      provider = anchor.getProvider();
+      wallet = provider.publicKey
+  })
+  
+})
