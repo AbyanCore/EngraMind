@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("GWgEbF6ewumjA5ZSgxWbBjDKJhdZ6GyxKQJZmyjGFADF");
+declare_id!("4zEC44NxzuFsrQ3ZVXqnrP1UghjL29ARnY7a6xaz2WZb");
 
 const TOKEN_LAMPORT: u64 = 10;
 
@@ -59,12 +59,6 @@ pub mod eternity_sc {
 
     pub fn create_locker(ctx: Context<CreateLocker>,locker_id: u32,name: String, description: String) -> Result<()> {
         let locker = &mut  ctx.accounts.locker;
-        
-        // check ownership 
-        require!(
-            ctx.accounts.signer.key() == locker.owner,
-            CustomErrorCode::UnAuthorized
-        );
 
         // Validate Data
         require!(
@@ -143,7 +137,8 @@ pub mod eternity_sc {
             ctx.accounts.signer.key() == locker.owner || ctx.accounts.signer.key() == storage_pointer.owner,
             CustomErrorCode::UnAuthorized
         );
-        
+
+        // check data count
         if storage_pointer.data_count >= 500 {
             return err!(CustomErrorCode::StoragePointerGroupLimitExceeded);
         }
@@ -172,7 +167,7 @@ pub mod eternity_sc {
 
     pub fn update_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
         let storage_pointer = &mut ctx.accounts.storage_pointer;
-
+        
         // check ownership 
         require!(
             ctx.accounts.signer.key() == storage_pointer.owner,
@@ -182,36 +177,51 @@ pub mod eternity_sc {
         if storage_pointer.data_count <= id {
             return err!(CustomErrorCode::StoragePointerGroupNotFound)
         }
-
+        
         storage_pointer.data[id as usize] = key;
+        
         
         Ok(())
     }
     
     pub fn delete_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, id: u16) -> Result<()> {
         let storage_pointer = &mut ctx.accounts.storage_pointer;
-
+        let locker = &mut ctx.accounts.locker;
+        
         // check ownership 
         require!(
             ctx.accounts.signer.key() == storage_pointer.owner,
             CustomErrorCode::UnAuthorized
         );
+
+        // check count in locker and sp
+        require!(
+            locker.data_count > 0 && storage_pointer.data_count > 0,
+            CustomErrorCode::StoragePointerGroupNotFound
+        );
+
         
         if storage_pointer.data_count <= id {
             return err!(CustomErrorCode::StoragePointerGroupNotFound)
         }
 
-        storage_pointer.data[id as usize] = [0u8; 32];
+        storage_pointer.data.remove(id as usize);
+        storage_pointer.data_count -= 1;
+        locker.data_count -= 1;
+
         Ok(())
     }
 
     pub fn create_vault(ctx: Context<CreateVault>) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
+        let vaultlamport = &mut ctx.accounts.vault_lamport;
 
         vault.set_inner(Vault {
             owner: ctx.accounts.signer.key(),
             token: 0
         });
+
+        vaultlamport.set_inner(VaultLamport {});
 
         Ok(())
     }
@@ -534,7 +544,8 @@ pub struct Vault {
 }
 
 #[account]
-pub struct VaultLamport;
+#[derive(InitSpace)]
+pub struct VaultLamport {}
 
 #[derive(Accounts)]
 pub struct CreateVault<'info> {
@@ -553,7 +564,7 @@ pub struct CreateVault<'info> {
     #[account(
         init,
         payer = signer,
-        space = 8,
+        space = 8 + VaultLamport::INIT_SPACE,
         seeds = [b"vault_lamport", signer.key.as_ref()],
         bump
     )]
