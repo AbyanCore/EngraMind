@@ -1,0 +1,771 @@
+import * as anchor from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
+import { EternitySc } from "../target/types/eternity_sc";
+import { base64, bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { assert } from "chai";
+import { createWallet } from "./helper";
+
+describe("General Test", () => { 
+  // Configure the client to use the local cluster.
+  // anchor.setProvider(anchor.AnchorProvider.env())
+  
+  let program: Program<EternitySc>; 
+  let wallet: anchor.web3.PublicKey; 
+  let provider: anchor.Provider;
+  
+  it("Initialize Provider", () => {
+      anchor.setProvider(anchor.AnchorProvider.env());
+      program = anchor.workspace.EternitySc as Program<EternitySc>;
+  })
+  
+  it("Initialize Wallet", () => {
+      provider = anchor.getProvider();
+      wallet = provider.publicKey
+    })
+  
+  // it("Check All Locker", async () => {
+  //   const data = await program.account.locker.all()
+    
+  //   console.log("Locker: ", data)
+  // })
+
+  // it("Update Locker",  async () => {
+  //   const tx = await program.methods.updateLocker(
+  //     1,
+  //     "test locker 1",
+  //     "Test Locker Creation 1"
+  //   ).rpc()
+
+  //   console.log("Transaction Signature: ", tx)
+  // })
+
+
+  // it("Check All Locker", async () => {
+  //   const data = await program.account.locker.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     }
+  //   ])
+    
+  //   console.log("Locker: ", data)
+  // })
+  
+  // it("create SP", async () => {
+  //   const sps = (await program.account.storagePointer.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     }
+  //   ])).sort((a,b) => a.account.id - b.account.id)
+  //   const randompubkey = PublicKey.unique()
+
+  //   console.log("Next SP PDA: ", sps.length <= 0 ? "None" : sps[sps.length - 1].publicKey)
+
+  //   const tx = await program.methods.createSp(
+  //     1,
+  //     sps.length
+  //   ).accounts({
+  //     oldStoragePointer: sps.length <= 0 ? randompubkey : sps[sps.length - 1].publicKey
+  //   }).rpc();
+    
+  //   console.log("Transaction Signature: ", tx)
+  // })
+
+  // it("Check All sp", async () => {
+  //   const data = (await program.account.storagePointer.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     },
+  //     {
+  //       memcmp: {
+  //         offset: 44,
+  //         bytes: bs58.encode(Buffer.from(Uint32Array.of(1).buffer))
+  //       }
+  //     }
+  //   ])).sort((a,b) => a.account.id - b.account.id)
+    
+  //   console.log("sp: ", data)
+  // })
+
+  // it("add SP", async () => {
+  //   const data = await program.account.locker.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     }
+  //   ])
+    
+  //   const tx = await program.methods.addSp(
+  //     1,
+  //     0,
+  //     Array.from(Keypair.generate().publicKey.toBuffer())
+  //   ).rpc()
+    
+  //   // console.log("Inserting: ", PublicKey.unique().toBase58())
+  //   console.log("Transaction Signature: ", tx)
+  // })
+  
+  // it("delete SP", async () => {
+  //   const tx = await program.methods.deleteSp(
+  //     1,
+  //     0,
+  //     1
+  //   ).rpc()
+    
+  //   // console.log("Inserting: ", PublicKey.unique().toBase58())
+  //   console.log("Transaction Signature: ", tx)
+  // })
+
+  // it("update SP", async () => {
+  //   const tx = await program.methods.updateSp(
+  //     1,
+  //     0,
+  //     2,
+  //     Array.from(Keypair.generate().publicKey.toBuffer())
+  //   ).rpc()
+    
+  //   // console.log("Inserting: ", PublicKey.unique().toBase58())
+  //   console.log("Transaction Signature: ", tx)
+  // })
+
+  // it("Check All sp", async () => {
+  //   const data_sp = (await program.account.storagePointer.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     },
+  //     {
+  //       memcmp: {
+  //         offset: 40,
+  //         bytes: bs58.encode(Buffer.from(Uint32Array.of(1).buffer))
+  //       }
+  //     },
+  //     {
+  //       memcmp: {
+  //         offset: 44,
+  //         bytes: bs58.encode(Buffer.from(Uint32Array.of(0).buffer))
+  //       }
+  //     }
+  //   ])).sort((a,b) => a.account.id - b.account.id)
+    
+  //   data_sp.map(val => {
+  //     console.log("sp     : ", val)
+  //     console.log("data sp: ")
+  //     val.account.data.map((valx,id) => {
+  //       console.log("data ", id, ": ", PublicKey.decode(Buffer.from(valx)).toBase58())
+  //     })
+  //   })
+  // })
+
+  // it("Create Vault", async () => {
+  //   const tx = await program.methods.createVault().rpc()
+
+  //   console.log("Transaction Signature: ",tx)
+  // })
+
+  // it("Buy Token", async () => {
+  //   const tx = await program.methods.buyToken(
+  //     new anchor.BN(1_000_000)
+  //   ).rpc()
+
+  //   console.log("Transaction Signature: ",tx)
+  // })
+  
+  // it("Take Token", async () => {
+  //   const tx = await program.methods.takeToken(
+  //     new anchor.BN(1_000_000)
+  //   ).rpc()
+
+  //   console.log("Transaction Signature: ",tx)
+  // })
+
+
+  // it("Check Vault", async () => {
+  //   const data = await program.account.vault.all([
+  //     {
+  //       memcmp: {
+  //         offset: 8,
+  //         bytes: wallet.toBase58()
+  //       }
+  //     }
+  //   ])
+
+  //   console.log("vault: ",data)
+  // })
+});
+
+describe("Profile Test", () => {
+  let program: Program<EternitySc>;
+  let wallet: Keypair;
+  let provider: anchor.Provider;
+
+  async function getProfile() {
+    const [profilePda, _] = await PublicKey.findProgramAddressSync(
+      [Buffer.from("profile"), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    return await program.account.profile.fetch(profilePda);
+  }
+
+  it("Init", async () => {
+    anchor.setProvider({
+      connection: new Connection("http://localhost:8899", "confirmed"),
+    });
+    program = anchor.workspace.EternitySc as Program<EternitySc>;
+    provider = anchor.getProvider();
+
+    wallet = await createWallet(10, provider);
+  });
+
+  it("Create Profile", async () => {
+    const name = "Abyan";
+    const age = 20;
+    const hobbie = ["Coding", "Gaming"];
+    const message = "Hello World!";
+
+    const tx = await program.methods
+      .createProfile(name, age, hobbie, message)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const profile = await getProfile();
+    assert.equal(profile.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(profile.name, name, "Name mismatch");
+    assert.equal(profile.age, age, "Age mismatch");
+    assert.deepEqual(profile.hobbie, hobbie, "Hobbie mismatch");
+    assert.equal(profile.message, message, "Message mismatch");
+  });
+
+  it("Update Profile", async () => {
+    const name = "AbyanFun";
+    const age = 21;
+    const hobbie = ["Coding", "Gaming", "Tidur"];
+    const message = "Hello World!";
+
+    const tx = await program.methods
+      .updateProfile(name, age, hobbie, message)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const profile = await getProfile();
+    assert.equal(profile.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(profile.name, name, "Name mismatch");
+    assert.equal(profile.age, age, "Age mismatch");
+    assert.deepEqual(profile.hobbie, hobbie, "Hobbie mismatch");
+    assert.equal(profile.message, message, "Message mismatch");
+  });
+
+  it("Profile Validation", async () => {
+    const testCases = [
+      { name: "A".repeat(101), age: 20, hobbie: ["Coding"], message: "Hello", error: "Name exceeds max length" },
+      { name: "Abyan", age: 65536, hobbie: ["Coding"], message: "Hello", error: "Age exceeds max value" },
+      { name: "Abyan", age: 20, hobbie: Array(6).fill("Hobby"), message: "Hello", error: "Hobbie exceeds max count" },
+      { name: "Abyan", age: 20, hobbie: ["Coding"], message: "C".repeat(301), error: "Message exceeds max length" },
+    ];
+
+    for (const testCase of testCases) {
+      const tempWallet = await createWallet(1, provider);
+
+      try {
+        await program.methods
+          .createProfile(testCase.name, testCase.age, testCase.hobbie, testCase.message)
+          .accounts({
+            signer: tempWallet.publicKey,
+          })
+          .signers([tempWallet])
+          .rpc();
+
+        console.log(false, `Validation failed: ${testCase.error}`);
+      } catch (err) {
+        console.log(true, `Validation passed: ${testCase.error}`);
+      }
+    }
+  });
+});
+
+describe("Locker Test", () => {
+  let program: Program<EternitySc>;
+  let wallet: Keypair;
+  let provider: anchor.Provider;
+
+  async function getLocker(lockerId: number) {
+    const [lockerPda, _] = await PublicKey.findProgramAddressSync(
+      [Buffer.from("locker"), wallet.publicKey.toBuffer(), Buffer.from(Uint32Array.of(lockerId).buffer)],
+      program.programId
+    );
+    return await program.account.locker.fetch(lockerPda);
+  }
+
+  it("Init", async () => {
+    anchor.setProvider({
+      connection: new Connection("http://localhost:8899", "confirmed"),
+    });
+    program = anchor.workspace.EternitySc as Program<EternitySc>;
+    provider = anchor.getProvider();
+
+    wallet = await createWallet(10, provider);
+  });
+
+  it("Create Locker", async () => {
+    const lockerId = 1;
+    const name = "My First Locker";
+    const description = "This is a test locker";
+
+    const tx = await program.methods
+      .createLocker(lockerId, name, description)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const locker = await getLocker(lockerId);
+    assert.equal(locker.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(locker.id, lockerId, "Locker ID mismatch");
+    assert.equal(locker.name, name, "Name mismatch");
+    assert.equal(locker.description, description, "Description mismatch");
+    assert.equal(locker.dataCount, 0, "Initial data count mismatch");
+    assert.equal(locker.size, 0, "Initial size mismatch");
+    assert.isFalse(locker.visibility, "Initial visibility mismatch");
+    assert.isNull(locker.storagePointer, "Initial storage pointer mismatch");
+  });
+
+  it("Update Locker", async () => {
+    const lockerId = 1;
+    const name = "Updated Locker Name";
+    const description = "Updated Locker Description";
+    const visibility = true;
+
+    const tx = await program.methods
+      .updateLocker(lockerId, name, description, visibility)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const locker = await getLocker(lockerId);
+    assert.equal(locker.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(locker.id, lockerId, "Locker ID mismatch");
+    assert.equal(locker.name, name, "Name mismatch");
+    assert.equal(locker.description, description, "Description mismatch");
+    assert.isTrue(locker.visibility, "Visibility mismatch");
+  });
+
+  it("Create Locker Maximum Limit", async () => {
+    const lockerId = 2;
+    const name = "A".repeat(50);
+    const description = "B".repeat(300);
+
+    const tx = await program.methods
+      .createLocker(lockerId, name, description)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const locker = await getLocker(lockerId);
+    assert.equal(locker.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(locker.id, lockerId, "Locker ID mismatch");
+    assert.equal(locker.name, name, "Name mismatch");
+    assert.equal(locker.description, description, "Description mismatch");
+  });
+
+  it("Locker Validation", async () => {
+    const testCases = [
+      { lockerId: 3, name: "A".repeat(51), description: "Valid Description", error: "Name exceeds max length" },
+      { lockerId: 4, name: "Valid Name", description: "B".repeat(301), error: "Description exceeds max length" },
+    ];
+
+    for (const testCase of testCases) {
+      try {
+        await program.methods
+          .createLocker(testCase.lockerId, testCase.name, testCase.description)
+          .accounts({
+            signer: wallet.publicKey,
+          })
+          .signers([wallet])
+          .rpc();
+
+        console.log(false, `Validation failed: ${testCase.error}`);
+      } catch (err) {
+        console.log(true, `Validation passed: ${testCase.error}`);
+      }
+    }
+  });
+});
+
+describe("StoragePointer Test", () => {
+  let program: Program<EternitySc>;
+  let wallet: Keypair;
+  let provider: anchor.Provider;
+
+  async function getStoragePointer(lockerId: number, spId: number) {
+    const data = await program.account.storagePointer.all([
+      {
+        memcmp: {
+          offset: 8, // Offset for the owner field
+          bytes: wallet.publicKey.toBase58(),
+        },
+      },
+      {
+        memcmp: {
+          offset: 40, // Offset for the lockerId field
+          bytes: bs58.encode(Buffer.from(Uint32Array.of(lockerId).buffer)),
+        },
+      },
+      {
+        memcmp: {
+          offset: 44, // Offset for the spId field
+          bytes: bs58.encode(Buffer.from(Uint32Array.of(spId).buffer)),
+        },
+      },
+    ]);
+
+    if (data.length === 0) {
+      throw new Error("StoragePointer not found");
+    }
+
+    return data[0].account;
+  }
+
+  it("Init", async () => {
+    anchor.setProvider({
+      connection: new Connection("http://localhost:8899", "confirmed"),
+    });
+    program = anchor.workspace.EternitySc as Program<EternitySc>;
+    provider = anchor.getProvider();
+
+    wallet = await createWallet(10, provider);
+  });
+
+  it("Create Locker for StoragePointer", async () => {
+    const lockerId = 1;
+    const name = "Locker for SP";
+    const description = "This locker is used for testing StoragePointer";
+
+    const tx = await program.methods
+      .createLocker(lockerId, name, description)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+  });
+
+  it("Create StoragePointer", async () => {
+    const lockerId = 1;
+    const spId = 1;
+
+    const existingSPs = await program.account.storagePointer.all([
+      {
+        memcmp: {
+          offset: 8, // Offset for the owner field
+          bytes: wallet.publicKey.toBase58(),
+        },
+      },
+    ]);
+    const oldStoragePointer = existingSPs.length > 0
+      ? existingSPs[existingSPs.length - 1].publicKey
+      : Keypair.generate().publicKey;
+
+    const tx = await program.methods
+      .createSp(lockerId, spId)
+      .accounts({
+        signer: wallet.publicKey,
+        oldStoragePointer: oldStoragePointer,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const sp = await getStoragePointer(lockerId, spId);
+    assert.equal(sp.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(sp.lockerId, lockerId, "Locker ID mismatch");
+    assert.equal(sp.id, spId, "StoragePointer ID mismatch");
+    assert.equal(sp.data.length, 0, "Initial data length mismatch");
+    assert.equal(sp.dataCount, 0, "Initial data count mismatch");
+    assert.isNull(sp.nextSp, "Initial nextSp mismatch");
+  });
+
+  it("Add Data to StoragePointer", async () => {
+    const lockerId = 1;
+    const spId = 1;
+    const key = Array.from(Keypair.generate().publicKey.toBuffer());
+
+    const tx = await program.methods
+      .addSp(lockerId, spId, key)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const sp = await getStoragePointer(lockerId, spId);
+    assert.equal(sp.data.length, 1, "Data length mismatch after adding");
+    assert.deepEqual(sp.data[0], key, "Data mismatch after adding");
+    assert.equal(sp.dataCount, 1, "Data count mismatch after adding");
+  });
+
+  it("Update Data in StoragePointer", async () => {
+    const lockerId = 1;
+    const spId = 1;
+    const key = Array.from(Keypair.generate().publicKey.toBuffer());
+    const id = 0;
+
+    const tx = await program.methods
+      .updateSp(lockerId, spId, id, key)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const sp = await getStoragePointer(lockerId, spId);
+    assert.deepEqual(sp.data[0], key, "Data mismatch after updating");
+  });
+
+  it("Delete Data from StoragePointer", async () => {
+    const lockerId = 1;
+    const spId = 1;
+    const id = 0;
+
+    const tx = await program.methods
+      .deleteSp(lockerId, spId, id)
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const sp = await getStoragePointer(lockerId, spId);
+    assert.equal(sp.data.length, 0, "Data length mismatch after deleting");
+    assert.equal(sp.dataCount, 0, "Data count mismatch after deleting");
+  });
+
+  it("Test Blockchain Effect (Chaining)", async () => {
+    const lockerId = 1;
+    const iterations = 5; // Number of StoragePointers to chain
+
+    async function getSP(lockerId: number,spId: number ) {
+      const data = await program.account.storagePointer.all([
+        {
+          memcmp: {
+            offset: 8, // Offset for the owner field
+            bytes: wallet.publicKey.toBase58(),
+          },
+        },
+        {
+          memcmp: {
+            offset: 40, // Offset for the lockerId field
+            bytes: bs58.encode(Buffer.from(Uint32Array.of(lockerId).buffer)),
+          },
+        },
+        {
+          memcmp: {
+            offset: 44, // Offset for the spId field
+            bytes: bs58.encode(Buffer.from(Uint32Array.of(spId).buffer)),
+          },
+        },
+      ]);
+
+      return data[0]
+    }
+
+    let previousSpId = 1;
+    for (let i = previousSpId + 1; i <= previousSpId + iterations; i++) {
+      const tx = await program.methods
+        .createSp(lockerId, i)
+        .accounts({
+          signer: wallet.publicKey,
+          oldStoragePointer: previousSpId === 0
+            ? Keypair.generate().publicKey // Use a random key for the first SP
+            : (await getSP(lockerId, previousSpId)).publicKey,
+        })
+        .signers([wallet])
+        .rpc();
+
+      console.log(`Transaction Signature for SP ${i}: `, tx);
+
+      const sp = await getSP(lockerId, i);
+      if (previousSpId !== 0) {
+        const previousSp = await getSP(lockerId, previousSpId);
+        assert.equal(
+          previousSp.account.nextSp.toBase58(),
+          sp.publicKey.toBase58(),
+          `Chaining mismatch: SP ${previousSpId} does not point to SP ${i}`
+        );
+      }
+
+      previousSpId = i;
+    }
+  });
+});
+
+describe("Vault Test", () => {
+  let program: Program<EternitySc>;
+  let wallet: Keypair;
+  let provider: anchor.Provider;
+
+  async function getVault() {
+    const [vaultPda, _] = await PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    return await program.account.vault.fetch(vaultPda);
+  }
+
+  async function getVaultLamport() {
+    const [vaultLamportPda, _] = await PublicKey.findProgramAddressSync(
+      [Buffer.from("vault_lamport"), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    return await provider.connection.getAccountInfo(vaultLamportPda);
+  }
+
+  it("Init", async () => {
+    anchor.setProvider({
+      connection: new Connection("http://localhost:8899", "confirmed"),
+    });
+    program = anchor.workspace.EternitySc as Program<EternitySc>;
+    provider = anchor.getProvider();
+
+    wallet = await createWallet(10, provider);
+  });
+
+  it("Create Vault", async () => {
+    const tx = await program.methods
+      .createVault()
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const vault = await getVault();
+    const vaultLamport = await getVaultLamport();
+
+    // Validate Vault account
+    assert.equal(vault.owner.toBase58(), wallet.publicKey.toBase58(), "Owner mismatch");
+    assert.equal(vault.token, 0, "Initial token mismatch");
+
+    // Validate VaultLamport account
+    assert.isNotNull(vaultLamport.data, "VaultLamport account not created");
+  });
+
+  it("Buy Token", async () => {
+    const amount = 1_000_000; // 1 SOL
+    const tx = await program.methods
+      .buyToken(new anchor.BN(amount))
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const vault = await getVault();
+    const vaultLamport = await getVaultLamport();
+
+    // Validate Vault account
+    assert.equal(vault.token, amount * 10, "Token amount mismatch after buying");
+
+    // Validate VaultLamport account
+    assert.isNotNull(vaultLamport, "VaultLamport account not found");
+  });
+
+  it("Take Token", async () => {
+    const amount = 500_000; // 0.5 SOL
+    const tx = await program.methods
+      .takeToken(new anchor.BN(amount))
+      .accounts({
+        signer: wallet.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Transaction Signature: ", tx);
+
+    const vault = await getVault();
+    const vaultLamport = await getVaultLamport();
+
+    // Validate Vault account
+    assert.equal(vault.token, (1_000_000 - amount) * 10, "Token amount mismatch after taking");
+
+    // Validate VaultLamport account
+    assert.isNotNull(vaultLamport, "VaultLamport account not found");
+  });
+
+  it("Vault Validation", async () => {
+    const invalidAmount = 10_000_000_000;
+    try {
+      await program.methods
+        .buyToken(new anchor.BN(invalidAmount))
+        .accounts({
+          signer: wallet.publicKey,
+        })
+        .signers([wallet])
+        .rpc();
+
+      console.log(false, "-> Validation failed: Should not allow buying with insufficient balance");
+    } catch (err) {
+      console.log(true, "-> Validation passed: Insufficient balance check");
+    }
+
+    try {
+      await program.methods
+        .takeToken(new anchor.BN(10_000_000))
+        .accounts({
+          signer: wallet.publicKey,
+        })
+        .signers([wallet])
+        .rpc();
+
+      console.log(false, "-> Validation failed: Should not allow taking more tokens than available");
+    } catch (err) {
+      console.log(true, "-> Validation passed: Token limit check");
+    }
+  });
+});
