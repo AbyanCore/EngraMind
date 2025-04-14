@@ -6,20 +6,20 @@ const TOKEN_LAMPORT: u64 = 10;
 
 #[program]
 pub mod eternity_sc {
-
     use super::*;
 
-    pub fn create_profile(ctx: Context<CreateProfile>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
-        let profile = &mut  ctx.accounts.profile;
+    // PERSONALITY INSTRUCTION
+    pub fn create_personality(ctx: Context<CreatePersonality>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
+        let profile = &mut  ctx.accounts.personality;
 
         // Validate Data
         require!(
-            Profile::validate(&name, &hobbie, &message),
+            Personality::validate(&name, &hobbie, &message),
             PersonalityError::ProfileInputDataNotValid
         );
         
         // Set Data
-        profile.set_inner(Profile {
+        profile.set_inner(Personality {
             owner: ctx.accounts.signer.key(),
             name: name,
             age: age,
@@ -29,9 +29,8 @@ pub mod eternity_sc {
 
         Ok(())
     }
-
-    pub fn update_profile(ctx: Context<UpdateProfile>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
-        let profile = &mut  ctx.accounts.profile;
+    pub fn update_personality(ctx: Context<ManagePersonality>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
+        let profile = &mut  ctx.accounts.personality;
 
         // check ownership 
         require!(
@@ -41,12 +40,12 @@ pub mod eternity_sc {
 
         // Validate Data
         require!(
-            Profile::validate(&name, &hobbie, &message),
+            Personality::validate(&name, &hobbie, &message),
             PersonalityError::ProfileInputDataNotValid
         );
         
         // Set Data
-        profile.set_inner(Profile {
+        profile.set_inner(Personality {
             owner: ctx.accounts.signer.key(),
             name: name,
             age: age,
@@ -57,17 +56,59 @@ pub mod eternity_sc {
         Ok(())
     }
 
-    pub fn create_locker(ctx: Context<CreateLocker>,locker_id: u32,name: String, description: String) -> Result<()> {
-        let locker = &mut  ctx.accounts.locker;
+    // PERSONALITY MICRO INSTRUCTION
+    pub fn m_set_personality_message(ctx: Context<ManagePersonality>,message: String) -> Result<()> {
+        let profile = &mut  ctx.accounts.personality;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == profile.owner,
+            OtherError::UnAuthorized
+        );
 
         // Validate Data
         require!(
-            Locker::validate(&name, &description),
+            Personality::validate(&String::new(), &Vec::new(), &message),
+            PersonalityError::ProfileInputDataNotValid
+        );
+        
+        // Set Data
+        profile.message = message;
+        
+        Ok(())
+    }
+    pub fn m_set_personality_hobbie(ctx: Context<ManagePersonality>,hobbie: Vec<String>) -> Result<()> {
+        let profile = &mut  ctx.accounts.personality;
+
+        // check ownership 
+        require!(
+            ctx.accounts.signer.key() == profile.owner,
+            OtherError::UnAuthorized
+        );
+
+        // Validate Data
+        require!(
+            Personality::validate(&String::new(), &hobbie, &String::new()),
+            PersonalityError::ProfileInputDataNotValid
+        );
+        
+        // Set Data
+        profile.hobbie = hobbie;
+        
+        Ok(())
+    }
+
+    pub fn create_locker(ctx: Context<CreateRelic>,locker_id: u32,name: String, description: String) -> Result<()> {
+        let locker = &mut  ctx.accounts.relic;
+
+        // Validate Data
+        require!(
+            Relic::validate(&name, &description),
             RelicError::RelicInputDataNotValid
         );
         
         // Set Data
-        locker.set_inner(Locker {
+        locker.set_inner(Relic {
             owner: ctx.accounts.signer.key(),
             id: locker_id,
             name: name,
@@ -81,8 +122,8 @@ pub mod eternity_sc {
         Ok(())
     }
     
-    pub fn update_locker(ctx: Context<UpdateLocker>,_locker_id: u32,name: String, description: String, visibillity: bool) -> Result<()> {
-        let locker = &mut  ctx.accounts.locker;
+    pub fn update_locker(ctx: Context<ManageRelic>,_locker_id: u32,name: String, description: String, visibillity: bool) -> Result<()> {
+        let locker = &mut  ctx.accounts.relic;
 
         // check ownership 
         require!(
@@ -92,7 +133,7 @@ pub mod eternity_sc {
 
         // Validate Data
         require!(
-            Locker::validate(&name, &description),
+            Relic::validate(&name, &description),
             RelicError::RelicInputDataNotValid
         );
         
@@ -104,10 +145,10 @@ pub mod eternity_sc {
         Ok(())
     }
 
-    pub fn create_sp(ctx: Context<CreateSP>,locker_id: u32,sp_id: u32) -> Result<()> {
-        let locker = &mut  ctx.accounts.locker;
-        let sp = &mut ctx.accounts.storage_pointer;
-        let account_info = &ctx.accounts.old_storage_pointer;
+    pub fn create_sp(ctx: Context<CreateFragment>,locker_id: u32,sp_id: u32) -> Result<()> {
+        let locker = &mut  ctx.accounts.relic;
+        let sp = &mut ctx.accounts.fragments;
+        let account_info = &ctx.accounts.old_fragments;
 
         // check ownership 
         require!(
@@ -128,9 +169,9 @@ pub mod eternity_sc {
         Ok(())
     }
     
-    pub fn add_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, key: [u8; 32]) -> Result<()> {
-        let storage_pointer = &mut ctx.accounts.storage_pointer;
-        let locker = &mut ctx.accounts.locker;
+    pub fn add_sp(ctx: Context<ManageFragment>,_locker_id: u32,_sp_id: u32, key: [u8; 32]) -> Result<()> {
+        let storage_pointer = &mut ctx.accounts.fragments;
+        let locker = &mut ctx.accounts.relic;
 
         // check ownership 
         require!(
@@ -145,7 +186,7 @@ pub mod eternity_sc {
         
         let (new_size, addtional_rent) = calculate_rent_and_size(
             storage_pointer.to_account_info().data_len(),
-            8 + StoragePointer::INIT_SPACE + (storage_pointer.data_count + 1) as usize * 32
+            8 + Fragments::INIT_SPACE + (storage_pointer.data_count + 1) as usize * 32
         )?;
         
         transfer_lamports(
@@ -158,15 +199,15 @@ pub mod eternity_sc {
         
         storage_pointer.to_account_info().realloc(new_size, false)?;
         
-        storage_pointer.data.push(key);
+        storage_pointer.fragment.push(key);
         storage_pointer.data_count += 1;
         locker.data_count += 1;
         
         Ok(())
     }
 
-    pub fn update_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
-        let storage_pointer = &mut ctx.accounts.storage_pointer;
+    pub fn update_sp(ctx: Context<ManageFragment>,_locker_id: u32,_sp_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
+        let storage_pointer = &mut ctx.accounts.fragments;
         
         // check ownership 
         require!(
@@ -178,15 +219,15 @@ pub mod eternity_sc {
             return err!(FragmentError::FragmentDataNotFound)
         }
         
-        storage_pointer.data[id as usize] = key;
+        storage_pointer.fragment[id as usize] = key;
         
         
         Ok(())
     }
     
-    pub fn delete_sp(ctx: Context<ManageSP>,_locker_id: u32,_sp_id: u32, id: u16) -> Result<()> {
-        let storage_pointer = &mut ctx.accounts.storage_pointer;
-        let locker = &mut ctx.accounts.locker;
+    pub fn delete_sp(ctx: Context<ManageFragment>,_locker_id: u32,_sp_id: u32, id: u16) -> Result<()> {
+        let storage_pointer = &mut ctx.accounts.fragments;
+        let locker = &mut ctx.accounts.relic;
         
         // check ownership 
         require!(
@@ -205,7 +246,7 @@ pub mod eternity_sc {
             return err!(FragmentError::FragmentDataNotFound)
         }
 
-        storage_pointer.data.remove(id as usize);
+        storage_pointer.fragment.remove(id as usize);
         storage_pointer.data_count -= 1;
         locker.data_count -= 1;
 
@@ -362,7 +403,7 @@ fn calculate_rent_and_size(
 // ACCOUNT DEFINITIONS
 #[account]
 #[derive(InitSpace)]
-pub struct Profile {
+pub struct Personality {
     pub owner: Pubkey,
     #[max_len(100)]
     pub name: String,
@@ -373,7 +414,7 @@ pub struct Profile {
     pub message: String,
 }
 
-impl Profile {
+impl Personality {
     fn validate(name: &String, hobbie: &Vec<String>, message: &String) -> bool {
         // check name
         name.len() <= 100 &&
@@ -385,23 +426,23 @@ impl Profile {
 }
 
 #[derive(Accounts)]
-pub struct CreateProfile<'info> {
+pub struct CreatePersonality<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         init,
         payer = signer,
-        space = 8 + Profile::INIT_SPACE,
+        space = 8 + Personality::INIT_SPACE,
         seeds = [b"profile", signer.key.as_ref()],
         bump
     )]
-    pub profile: Account<'info, Profile>,
+    pub personality: Account<'info, Personality>,
     pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]
-pub struct UpdateProfile<'info> {
+pub struct ManagePersonality<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
@@ -410,13 +451,13 @@ pub struct UpdateProfile<'info> {
         seeds = [b"profile", signer.key.as_ref()],
         bump
     )]
-    pub profile: Account<'info, Profile>,
+    pub personality: Account<'info, Personality>,
     pub system_program: Program<'info, System>
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct Locker {
+pub struct Relic {
     pub owner: Pubkey,
     pub id: u32,
     #[max_len(50)]
@@ -429,7 +470,7 @@ pub struct Locker {
     pub storage_pointer: Option<Pubkey>
 }
 
-impl Locker {
+impl Relic {
     fn validate(name: &String, description: &String) -> bool {
         // check name
         name.len() <= 100 ||
@@ -439,97 +480,97 @@ impl Locker {
 }
 
 #[derive(Accounts)]
-#[instruction(locker_id: u32)]
-pub struct CreateLocker<'info> {
+#[instruction(relic_id: u32)]
+pub struct CreateRelic<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         init,
         payer = signer,
-        space = 8 + Locker::INIT_SPACE,
-        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
+        space = 8 + Relic::INIT_SPACE,
+        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub locker: Account<'info, Locker>,
+    pub relic: Account<'info, Relic>,
     pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]
-#[instruction(locker_id: u32)]
-pub struct UpdateLocker<'info> {
+#[instruction(relic_id: u32)]
+pub struct ManageRelic<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
+        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub locker: Account<'info, Locker>,
+    pub relic: Account<'info, Relic>,
     pub system_program: Program<'info, System>
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct StoragePointer {
+pub struct Fragments {
     pub owner: Pubkey,
     pub locker_id: u32,
     pub id: u32,
     #[max_len(1)]
-    pub data: Vec<[u8; 32]>,
+    pub fragment: Vec<[u8; 32]>,
     pub data_count: u16,
     pub next_sp: Option<Pubkey>
 }
 
 #[derive(Accounts)]
-#[instruction(locker_id: u32,sp_id: u32)]
-pub struct CreateSP<'info> {
+#[instruction(relic_id: u32,fragments_id: u32)]
+pub struct CreateFragment<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         init,
         payer = signer,
-        space = 8 + StoragePointer::INIT_SPACE,
-        seeds = [b"sp", signer.key.as_ref(), locker_id.to_le_bytes().as_ref(), sp_id.to_le_bytes().as_ref()],
+        space = 8 + Fragments::INIT_SPACE,
+        seeds = [b"sp", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub storage_pointer: Account<'info, StoragePointer>,
+    pub fragments: Account<'info, Fragments>,
 
     /// CHECK: Akun ini digunakan untuk menunjuk SP lama jika ada.
     #[account(mut)]
-    pub old_storage_pointer: AccountInfo<'info>,
+    pub old_fragments: AccountInfo<'info>,
     
     #[account(
         mut,
-        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
+        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub locker: Account<'info, Locker>,
+    pub relic: Account<'info, Relic>,
     
     pub system_program: Program<'info, System>
 }
 
 #[derive(Accounts)]
-#[instruction(locker_id: u32,sp_id: u32)]
-pub struct ManageSP<'info> {
+#[instruction(relic_id: u32,fragments_id: u32)]
+pub struct ManageFragment<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"sp", signer.key.as_ref(), locker_id.to_le_bytes().as_ref(), sp_id.to_le_bytes().as_ref()],
+        seeds = [b"sp", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub storage_pointer: Account<'info, StoragePointer>,
+    pub fragments: Account<'info, Fragments>,
     
     #[account(
         mut,
-        seeds = [b"locker", signer.key.as_ref(), locker_id.to_le_bytes().as_ref()],
+        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub locker: Account<'info, Locker>,
+    pub relic: Account<'info, Relic>,
     
     pub system_program: Program<'info, System>
 }
