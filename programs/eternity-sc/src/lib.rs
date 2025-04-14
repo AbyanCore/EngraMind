@@ -15,7 +15,7 @@ pub mod eternity_sc {
         // Validate Data
         require!(
             Profile::validate(&name, &hobbie, &message),
-            CustomErrorCode::DataNotValid
+            PersonalityError::ProfileInputDataNotValid
         );
         
         // Set Data
@@ -36,13 +36,13 @@ pub mod eternity_sc {
         // check ownership 
         require!(
             ctx.accounts.signer.key() == profile.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         // Validate Data
         require!(
             Profile::validate(&name, &hobbie, &message),
-            CustomErrorCode::DataNotValid
+            PersonalityError::ProfileInputDataNotValid
         );
         
         // Set Data
@@ -63,7 +63,7 @@ pub mod eternity_sc {
         // Validate Data
         require!(
             Locker::validate(&name, &description),
-            CustomErrorCode::DataNotValid
+            RelicError::RelicInputDataNotValid
         );
         
         // Set Data
@@ -87,13 +87,13 @@ pub mod eternity_sc {
         // check ownership 
         require!(
             ctx.accounts.signer.key() == locker.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         // Validate Data
         require!(
             Locker::validate(&name, &description),
-            CustomErrorCode::DataNotValid
+            RelicError::RelicInputDataNotValid
         );
         
         // Set Data
@@ -112,7 +112,7 @@ pub mod eternity_sc {
         // check ownership 
         require!(
             ctx.accounts.signer.key() == locker.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         sp.id = sp_id;
@@ -135,12 +135,12 @@ pub mod eternity_sc {
         // check ownership 
         require!(
             ctx.accounts.signer.key() == locker.owner || ctx.accounts.signer.key() == storage_pointer.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         // check data count
         if storage_pointer.data_count >= 500 {
-            return err!(CustomErrorCode::StoragePointerGroupLimitExceeded);
+            return err!(FragmentError::FragmentDataLimitExceeded);
         }
         
         let (new_size, addtional_rent) = calculate_rent_and_size(
@@ -171,11 +171,11 @@ pub mod eternity_sc {
         // check ownership 
         require!(
             ctx.accounts.signer.key() == storage_pointer.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
         
         if storage_pointer.data_count <= id {
-            return err!(CustomErrorCode::StoragePointerGroupNotFound)
+            return err!(FragmentError::FragmentDataNotFound)
         }
         
         storage_pointer.data[id as usize] = key;
@@ -191,18 +191,18 @@ pub mod eternity_sc {
         // check ownership 
         require!(
             ctx.accounts.signer.key() == storage_pointer.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         // check count in locker and sp
         require!(
             locker.data_count > 0 && storage_pointer.data_count > 0,
-            CustomErrorCode::StoragePointerGroupNotFound
+            FragmentError::FragmentDataNotFound
         );
 
         
         if storage_pointer.data_count <= id {
-            return err!(CustomErrorCode::StoragePointerGroupNotFound)
+            return err!(FragmentError::FragmentDataNotFound)
         }
 
         storage_pointer.data.remove(id as usize);
@@ -233,13 +233,13 @@ pub mod eternity_sc {
         // check ownership
         require!(
             ctx.accounts.signer.key() == vault.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         // check user lamport
         require!(
             ctx.accounts.signer.clone().to_account_info().lamports() > amount,
-            CustomErrorCode::LamportNotEnough
+            OtherError::LamportNotEnough
         );
 
         vault.token += amount * TOKEN_LAMPORT;
@@ -262,14 +262,14 @@ pub mod eternity_sc {
         // check ownership
         require!(
             ctx.accounts.signer.key() == vault.owner,
-            CustomErrorCode::UnAuthorized
+            OtherError::UnAuthorized
         );
 
         // check vault lamport
         require!(
             vault_lamport.to_account_info().lamports() > amount && 
             vault.token / TOKEN_LAMPORT > amount,
-            CustomErrorCode::LamportNotEnough
+            OtherError::LamportNotEnough
         );
 
         vault.token -= amount * TOKEN_LAMPORT;
@@ -289,29 +289,27 @@ pub mod eternity_sc {
 
 // Error codes
 #[error_code]
-pub enum CustomErrorCode {
-    #[msg("The specified profile could not be found.")]
-    ProfileNotFound,
-    #[msg("A profile with the same identifier already exists.")]
-    ProfileAlreadyExists,
-    
-    #[msg("The specified locker could not be found.")]
-    LockerNotFound,
-    #[msg("A locker with the same identifier already exists.")]
-    LockerAlreadyExists,
-    #[msg("The maximum number of lockers has been exceeded.")]
-    LockerLimitExceeded,
-    
-    #[msg("The specified storage pointer group could not be found.")]
-    StoragePointerGroupNotFound,
-    #[msg("A storage pointer group with the same identifier already exists.")]
-    StoragePointerGroupAlreadyExists,
-    #[msg("The maximum number of storage pointer groups has been exceeded.")]
-    StoragePointerGroupLimitExceeded,
-    
-    #[msg("The provided input data is not valid.")]
-    DataNotValid,
+pub enum PersonalityError {
+    #[msg("The provided profile data is invalid. Ensure the fields input is correct")]
+    ProfileInputDataNotValid,
+}
 
+#[error_code]
+pub enum RelicError {
+    #[msg("The provided relic data is invalid. Ensure the fields input is correct.")]
+    RelicInputDataNotValid,
+}
+
+#[error_code]
+pub enum FragmentError {
+    #[msg("The maximum number of fragments has been exceeded.")]
+    FragmentDataLimitExceeded,
+    #[msg("The specified fragment data could not be found.")]
+    FragmentDataNotFound,
+}
+
+#[error_code]
+pub enum OtherError {
     #[msg("Not Authorized")]
     UnAuthorized,
     #[msg("Not Enough Lamport or SOL")]
