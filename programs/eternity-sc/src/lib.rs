@@ -10,7 +10,7 @@ pub mod eternity_sc {
 
     // PERSONALITY INSTRUCTION
     pub fn create_personality(ctx: Context<CreatePersonality>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
-        let profile = &mut  ctx.accounts.personality;
+        let personality = &mut  ctx.accounts.personality;
 
         // Validate Data
         require!(
@@ -19,7 +19,7 @@ pub mod eternity_sc {
         );
         
         // Set Data
-        profile.set_inner(Personality {
+        personality.set_inner(Personality {
             owner: ctx.accounts.signer.key(),
             name: name,
             age: age,
@@ -30,11 +30,11 @@ pub mod eternity_sc {
         Ok(())
     }
     pub fn update_personality(ctx: Context<ManagePersonality>,name: String,age: u16, hobbie: Vec<String>, message: String) -> Result<()> {
-        let profile = &mut  ctx.accounts.personality;
+        let personality = &mut  ctx.accounts.personality;
 
         // check ownership 
         require!(
-            ctx.accounts.signer.key() == profile.owner,
+            ctx.accounts.signer.key() == personality.owner,
             OtherError::UnAuthorized
         );
 
@@ -45,7 +45,7 @@ pub mod eternity_sc {
         );
         
         // Set Data
-        profile.set_inner(Personality {
+        personality.set_inner(Personality {
             owner: ctx.accounts.signer.key(),
             name: name,
             age: age,
@@ -58,11 +58,12 @@ pub mod eternity_sc {
 
     // PERSONALITY MICRO INSTRUCTION
     pub fn m_set_personality_message(ctx: Context<ManagePersonality>,message: String) -> Result<()> {
-        let profile = &mut  ctx.accounts.personality;
+        let personality = &mut  ctx.accounts.personality;
 
         // check ownership 
-        require!(
-            ctx.accounts.signer.key() == profile.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            personality.owner,
             OtherError::UnAuthorized
         );
 
@@ -73,16 +74,17 @@ pub mod eternity_sc {
         );
         
         // Set Data
-        profile.message = message;
+        personality.message = message;
         
         Ok(())
     }
     pub fn m_set_personality_hobbie(ctx: Context<ManagePersonality>,hobbie: Vec<String>) -> Result<()> {
-        let profile = &mut  ctx.accounts.personality;
+        let personality = &mut  ctx.accounts.personality;
 
         // check ownership 
-        require!(
-            ctx.accounts.signer.key() == profile.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            personality.owner,
             OtherError::UnAuthorized
         );
 
@@ -93,13 +95,14 @@ pub mod eternity_sc {
         );
         
         // Set Data
-        profile.hobbie = hobbie;
+        personality.hobbie = hobbie;
         
         Ok(())
     }
 
-    pub fn create_locker(ctx: Context<CreateRelic>,locker_id: u32,name: String, description: String) -> Result<()> {
-        let locker = &mut  ctx.accounts.relic;
+    // RELIC INSTRUCTION
+    pub fn create_relic(ctx: Context<CreateRelic>,_relic_id: u32,name: String, description: String) -> Result<()> {
+        let relic = &mut  ctx.accounts.relic;
 
         // Validate Data
         require!(
@@ -108,9 +111,9 @@ pub mod eternity_sc {
         );
         
         // Set Data
-        locker.set_inner(Relic {
+        relic.set_inner(Relic {
             owner: ctx.accounts.signer.key(),
-            id: locker_id,
+            authority: ctx.accounts.authority.key(),
             name: name,
             description: description,
             data_count: 0,
@@ -121,13 +124,20 @@ pub mod eternity_sc {
         
         Ok(())
     }
-    
-    pub fn update_locker(ctx: Context<ManageRelic>,_locker_id: u32,name: String, description: String, visibillity: bool) -> Result<()> {
-        let locker = &mut  ctx.accounts.relic;
+    pub fn update_relic(ctx: Context<ManageRelic>,_relic_id: u32,name: String, description: String, visibillity: bool) -> Result<()> {
+        let relic = &mut  ctx.accounts.relic;
 
-        // check ownership 
-        require!(
-            ctx.accounts.signer.key() == locker.owner,
+        // check ownership
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            relic.owner,
+            OtherError::UnAuthorized
+        );
+        
+        // check authority 
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            relic.authority,
             OtherError::UnAuthorized
         );
 
@@ -138,127 +148,173 @@ pub mod eternity_sc {
         );
         
         // Set Data
-        locker.name = name;
-        locker.description = description;
-        locker.visibility = visibillity;
-        
-        Ok(())
-    }
-
-    pub fn create_sp(ctx: Context<CreateFragment>,locker_id: u32,sp_id: u32) -> Result<()> {
-        let locker = &mut  ctx.accounts.relic;
-        let sp = &mut ctx.accounts.fragments;
-        let account_info = &ctx.accounts.old_fragments;
-
-        // check ownership 
-        require!(
-            ctx.accounts.signer.key() == locker.owner,
-            OtherError::UnAuthorized
-        );
-
-        sp.id = sp_id;
-        sp.owner = ctx.accounts.signer.key();
-        sp.locker_id = locker_id;
-
-        if locker.storage_pointer.is_some() {
-            sp.next_sp = Some(account_info.key());
-        }
-
-        locker.storage_pointer = Some(sp.key());
+        relic.name = name;
+        relic.description = description;
+        relic.visibility = visibillity;
         
         Ok(())
     }
     
-    pub fn add_sp(ctx: Context<ManageFragment>,_locker_id: u32,_sp_id: u32, key: [u8; 32]) -> Result<()> {
-        let storage_pointer = &mut ctx.accounts.fragments;
-        let locker = &mut ctx.accounts.relic;
+    // RELIC MICRO INSTRUCTION
+    pub fn m_set_relic_description(ctx: Context<ManageRelic>, _locker_id: u32, description: String) -> Result<()> {
+        let relic = &mut ctx.accounts.relic;
+
+        // check ownership
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            relic.owner,
+            OtherError::UnAuthorized
+        );
+        
+        // check authority 
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            relic.authority,
+            OtherError::UnAuthorized
+        );
+
+        require!(
+            Relic::validate(&String::new(), &description),
+            RelicError::RelicInputDataNotValid
+        );
+
+        relic.description = description;
+
+        Ok(())
+    }
+
+    // FRAGMENTS INSTRUCTION
+    pub fn create_fragments(ctx: Context<CreateFragments>,_relic_id: u32,_fragment_id: u32) -> Result<()> {
+        let relic = &mut  ctx.accounts.relic;
+        let fragments = &mut ctx.accounts.fragments;
+        let account_info = &ctx.accounts.old_fragments;
+
+
+        fragments.owner = ctx.accounts.signer.key();
+        fragments.authority = ctx.accounts.authority.key();
+
+        if relic.storage_pointer.is_some() {
+            fragments.next_fragments = Some(account_info.key());
+        }
+
+        relic.storage_pointer = Some(fragments.key());
+        
+        Ok(())
+    }
+
+    // FRAGMENTS MICRO INSTRUCTION
+    pub fn m_add_fragment(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, key: [u8; 32]) -> Result<()> {
+        let fragments = &mut ctx.accounts.fragments;
+        let relic = &mut ctx.accounts.relic;
 
         // check ownership 
-        require!(
-            ctx.accounts.signer.key() == locker.owner || ctx.accounts.signer.key() == storage_pointer.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            fragments.owner,
+            OtherError::UnAuthorized
+        );
+
+        // check authority
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            fragments.authority,
             OtherError::UnAuthorized
         );
 
         // check data count
-        if storage_pointer.data_count >= 500 {
+        if fragments.data_alloc >= 500 {
             return err!(FragmentError::FragmentDataLimitExceeded);
         }
         
         let (new_size, addtional_rent) = calculate_rent_and_size(
-            storage_pointer.to_account_info().data_len(),
-            8 + Fragments::INIT_SPACE + (storage_pointer.data_count + 1) as usize * 32
+            fragments.to_account_info().data_len(),
+            8 + Fragments::INIT_SPACE + (fragments.data_alloc + 1) as usize * 32
         )?;
         
         transfer_lamports(
             &ctx.accounts.signer.to_account_info(), 
-            storage_pointer.as_ref(), 
+            fragments.as_ref(), 
             addtional_rent, 
             &ctx.accounts.system_program,
             false
         )?;
         
-        storage_pointer.to_account_info().realloc(new_size, false)?;
+        fragments.to_account_info().realloc(new_size, false)?;
         
-        storage_pointer.fragment.push(key);
-        storage_pointer.data_count += 1;
-        locker.data_count += 1;
+        fragments.fragment.push(key);
+        fragments.data_alloc += 1;
+        relic.data_count += 1;
         
         Ok(())
     }
-
-    pub fn update_sp(ctx: Context<ManageFragment>,_locker_id: u32,_sp_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
-        let storage_pointer = &mut ctx.accounts.fragments;
+    pub fn m_update_fragment(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
+        let fragments = &mut ctx.accounts.fragments;
         
         // check ownership 
-        require!(
-            ctx.accounts.signer.key() == storage_pointer.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            fragments.owner,
+            OtherError::UnAuthorized
+        );
+
+        // check authority
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            fragments.authority,
             OtherError::UnAuthorized
         );
         
-        if storage_pointer.data_count <= id {
+        if fragments.data_alloc <= id {
             return err!(FragmentError::FragmentDataNotFound)
         }
         
-        storage_pointer.fragment[id as usize] = key;
-        
+        fragments.fragment[id as usize] = key;
         
         Ok(())
     }
-    
-    pub fn delete_sp(ctx: Context<ManageFragment>,_locker_id: u32,_sp_id: u32, id: u16) -> Result<()> {
-        let storage_pointer = &mut ctx.accounts.fragments;
-        let locker = &mut ctx.accounts.relic;
+    pub fn m_delete_fragment(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, id: u16) -> Result<()> {
+        let fragments = &mut ctx.accounts.fragments;
+        let relic = &mut ctx.accounts.relic;
         
         // check ownership 
-        require!(
-            ctx.accounts.signer.key() == storage_pointer.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            fragments.owner,
+            OtherError::UnAuthorized
+        );
+
+        // check authority
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            fragments.authority,
             OtherError::UnAuthorized
         );
 
         // check count in locker and sp
         require!(
-            locker.data_count > 0 && storage_pointer.data_count > 0,
+            relic.data_count > 0 && fragments.data_alloc > 0,
             FragmentError::FragmentDataNotFound
         );
 
         
-        if storage_pointer.data_count <= id {
+        if fragments.data_alloc <= id {
             return err!(FragmentError::FragmentDataNotFound)
         }
 
-        storage_pointer.fragment.remove(id as usize);
-        storage_pointer.data_count -= 1;
-        locker.data_count -= 1;
+        fragments.fragment.remove(id as usize);
+        relic.data_count -= 1;
 
         Ok(())
     }
 
+    // VAULT INSTRUCTION
     pub fn create_vault(ctx: Context<CreateVault>) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
         let vaultlamport = &mut ctx.accounts.vault_lamport;
 
         vault.set_inner(Vault {
             owner: ctx.accounts.signer.key(),
+            authority: ctx.accounts.authority.key(),
             token: 0
         });
 
@@ -267,13 +323,22 @@ pub mod eternity_sc {
         Ok(())
     }
 
-    pub fn buy_token(ctx: Context<ManageVault>,amount: u64) -> Result<()> {
+    // VAULT MICRO INSTRUCTION
+    pub fn m_buy_token(ctx: Context<ManageVault>,amount: u64) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
         let vault_lamport = &mut ctx.accounts.vault_lamport;
 
         // check ownership
-        require!(
-            ctx.accounts.signer.key() == vault.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            vault.owner,
+            OtherError::UnAuthorized
+        );
+
+        // check authority
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            vault.authority,
             OtherError::UnAuthorized
         );
 
@@ -295,14 +360,21 @@ pub mod eternity_sc {
         
         Ok(())
     }
-
-    pub fn take_token(ctx: Context<ManageVault>, amount: u64) -> Result<()> {
+    pub fn m_take_token(ctx: Context<ManageVault>, amount: u64) -> Result<()> {
         let vault = &mut ctx.accounts.vault;
         let vault_lamport = &mut ctx.accounts.vault_lamport;
 
         // check ownership
-        require!(
-            ctx.accounts.signer.key() == vault.owner,
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            vault.owner,
+            OtherError::UnAuthorized
+        );
+
+        // check authority
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            vault.authority,
             OtherError::UnAuthorized
         );
 
@@ -434,7 +506,7 @@ pub struct CreatePersonality<'info> {
         init,
         payer = signer,
         space = 8 + Personality::INIT_SPACE,
-        seeds = [b"profile", signer.key.as_ref()],
+        seeds = [b"personality", signer.key.as_ref()],
         bump
     )]
     pub personality: Account<'info, Personality>,
@@ -448,7 +520,7 @@ pub struct ManagePersonality<'info> {
 
     #[account(
         mut,
-        seeds = [b"profile", signer.key.as_ref()],
+        seeds = [b"personality", signer.key.as_ref()],
         bump
     )]
     pub personality: Account<'info, Personality>,
@@ -459,7 +531,7 @@ pub struct ManagePersonality<'info> {
 #[derive(InitSpace)]
 pub struct Relic {
     pub owner: Pubkey,
-    pub id: u32,
+    pub authority: Pubkey,
     #[max_len(50)]
     pub name: String,
     #[max_len(300)]
@@ -485,11 +557,14 @@ pub struct CreateRelic<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
     #[account(
         init,
         payer = signer,
         space = 8 + Relic::INIT_SPACE,
-        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -502,9 +577,12 @@ pub struct ManageRelic<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
     #[account(
         mut,
-        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -515,19 +593,20 @@ pub struct ManageRelic<'info> {
 #[derive(InitSpace)]
 pub struct Fragments {
     pub owner: Pubkey,
-    pub locker_id: u32,
-    pub id: u32,
+    pub authority: Pubkey,
     #[max_len(1)]
     pub fragment: Vec<[u8; 32]>,
-    pub data_count: u16,
-    pub next_sp: Option<Pubkey>
+    pub data_alloc: u16, // depends on fragment[]. max 1232 b
+    pub next_fragments: Option<Pubkey>
 }
 
 #[derive(Accounts)]
 #[instruction(relic_id: u32,fragments_id: u32)]
-pub struct CreateFragment<'info> {
+pub struct CreateFragments<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     #[account(
         init,
@@ -538,7 +617,6 @@ pub struct CreateFragment<'info> {
     )]
     pub fragments: Account<'info, Fragments>,
 
-    /// CHECK: Akun ini digunakan untuk menunjuk SP lama jika ada.
     #[account(mut)]
     pub old_fragments: AccountInfo<'info>,
     
@@ -554,9 +632,11 @@ pub struct CreateFragment<'info> {
 
 #[derive(Accounts)]
 #[instruction(relic_id: u32,fragments_id: u32)]
-pub struct ManageFragment<'info> {
+pub struct ManageFragments<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     #[account(
         mut,
@@ -579,6 +659,7 @@ pub struct ManageFragment<'info> {
 #[derive(InitSpace)]
 pub struct Vault {
     pub owner: Pubkey,
+    pub authority: Pubkey,
     pub token: u64,
 }
 
@@ -590,6 +671,8 @@ pub struct VaultLamport {}
 pub struct CreateVault<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     #[account(
         init,
@@ -616,6 +699,8 @@ pub struct CreateVault<'info> {
 pub struct ManageVault<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     #[account(
         mut,
