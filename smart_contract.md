@@ -1,13 +1,13 @@
 # Eternity Smart Contract Documentation
 
-This document provides an overview of the smart contract functionality implemented in the `eternity_sc` program. The program is built using the Anchor framework for Solana.
+This document provides a comprehensive overview of the `eternity_sc` program, including instructions, data structures, error codes, and helper functions. The program is built using the Anchor framework for Solana.
 
 ## Table of Contents
 1. [Program Overview](#program-overview)
 2. [Instructions](#instructions)
-    - [Profile Management](#profile-management)
-    - [Locker Management](#locker-management)
-    - [Storage Pointer Management](#storage-pointer-management)
+    - [Personality Management](#personality-management)
+    - [Relic Management](#relic-management)
+    - [Fragment Management](#fragment-management)
     - [Vault Management](#vault-management)
 3. [Error Codes](#error-codes)
 4. [Helper Functions](#helper-functions)
@@ -17,67 +17,131 @@ This document provides an overview of the smart contract functionality implement
 
 ## Program Overview
 
-The `eternity_sc` program provides functionality for managing user profiles, lockers, storage pointers, and vaults. It includes mechanisms for data validation, ownership checks, and lamport transfers.
+The `eternity_sc` program provides functionality for managing personalities, relics, fragments, and vaults. It includes mechanisms for data validation, ownership checks, and lamport transfers.
 
 ---
 
 ## Instructions
 
-### Profile Management
+### Personality Management
 
-- **Create Profile**
-  - **Function**: `create_profile`
-  - **Description**: Creates a new user profile.
-  - **Parameters**: `name`, `age`, `hobbie`, `message`
-  - **Validation**: Ensures data length constraints are met.
+- **Create Personality**
+  - **Function**: `create_personality`
+  - **Description**: Creates a new personality profile.
+  - **Parameters**:
+    - `name` (String): The name of the personality. Maximum length: 100 characters.
+    - `age` (u16): The age of the personality.
+    - `hobbie` (Vec<String>): A list of hobbies. Maximum 5 hobbies, each up to 100 characters.
+    - `message` (String): A custom message. Maximum length: 300 characters.
+  - **Validation**:
+    - `name` must not exceed 100 characters.
+    - `hobbie` must not exceed 5 items, and each item must not exceed 100 characters.
+    - `message` must not exceed 300 characters.
 
-- **Update Profile**
-  - **Function**: `update_profile`
-  - **Description**: Updates an existing user profile.
-  - **Parameters**: `name`, `age`, `hobbie`, `message`
+- **Update Personality**
+  - **Function**: `update_personality`
+  - **Description**: Updates an existing personality profile.
+  - **Parameters**:
+    - Same as `create_personality`.
   - **Ownership Check**: Ensures only the profile owner can update.
+  - **Validation**: Same as `create_personality`.
+
+- **Set Personality Message**
+  - **Function**: `m_set_personality_message`
+  - **Description**: Updates the message field of a personality profile.
+  - **Parameters**:
+    - `message` (String): A custom message. Maximum length: 300 characters.
+  - **Ownership Check**: Ensures only the profile owner can update.
+  - **Validation**:
+    - `message` must not exceed 300 characters.
+
+- **Set Personality Hobbie**
+  - **Function**: `m_set_personality_hobbie`
+  - **Description**: Updates the hobbie field of a personality profile.
+  - **Parameters**:
+    - `hobbie` (Vec<String>): A list of hobbies. Maximum 5 hobbies, each up to 100 characters.
+  - **Ownership Check**: Ensures only the profile owner can update.
+  - **Validation**:
+    - `hobbie` must not exceed 5 items, and each item must not exceed 100 characters.
 
 ---
 
-### Locker Management
+### Relic Management
 
-- **Create Locker**
-  - **Function**: `create_locker`
-  - **Description**: Creates a new locker.
-  - **Parameters**: `locker_id`, `name`, `description`
-  - **Validation**: Ensures data length constraints are met.
+- **Create Relic**
+  - **Function**: `create_relic`
+  - **Description**: Creates a new relic.
+  - **Parameters**:
+    - `_relic_id` (u32): A unique identifier for the relic.
+    - `name` (String): The name of the relic. Maximum length: 50 characters.
+    - `description` (String): A description of the relic. Maximum length: 300 characters.
+  - **Validation**:
+    - `name` must not exceed 50 characters.
+    - `description` must not exceed 300 characters.
 
-- **Update Locker**
-  - **Function**: `update_locker`
-  - **Description**: Updates an existing locker.
-  - **Parameters**: `locker_id`, `name`, `description`, `visibility`
-  - **Ownership Check**: Ensures only the locker owner can update.
+- **Update Relic**
+  - **Function**: `update_relic`
+  - **Description**: Updates an existing relic.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `name` (String): The updated name of the relic. Maximum length: 50 characters.
+    - `description` (String): The updated description of the relic. Maximum length: 300 characters.
+    - `visibility` (bool): The visibility status of the relic.
+  - **Ownership Check**: Ensures only the relic owner can update.
+  - **Validation**:
+    - Same as `create_relic`.
+
+- **Set Relic Description**
+  - **Function**: `m_set_relic_description`
+  - **Description**: Updates the description field of a relic.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `description` (String): The updated description. Maximum length: 300 characters.
+  - **Ownership Check**: Ensures only the relic owner can update.
+  - **Validation**:
+    - `description` must not exceed 300 characters.
 
 ---
 
-### Storage Pointer Management
+### Fragment Management
 
-- **Create Storage Pointer**
-  - **Function**: `create_sp`
-  - **Description**: Creates a new storage pointer.
-  - **Parameters**: `locker_id`, `sp_id`
-  - **Ownership Check**: Ensures only the locker owner can create.
+- **Create Fragments**
+  - **Function**: `create_fragments`
+  - **Description**: Creates a new fragment and links it to a relic.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `_fragment_id` (u32): The unique identifier for the fragment.
 
-- **Add Storage Pointer**
-  - **Function**: `add_sp`
-  - **Description**: Adds a key to the storage pointer.
-  - **Parameters**: `locker_id`, `sp_id`, `key`
-  - **Validation**: Checks storage pointer group limits.
+- **Add Fragment**
+  - **Function**: `m_add_fragment`
+  - **Description**: Adds a key to a fragment.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `_fragment_id` (u32): The unique identifier for the fragment.
+    - `key` ([u8; 32]): A 32-byte key to add to the fragment.
+  - **Validation**:
+    - The fragment must not exceed 500 keys.
 
-- **Update Storage Pointer**
-  - **Function**: `update_sp`
-  - **Description**: Updates a key in the storage pointer.
-  - **Parameters**: `locker_id`, `sp_id`, `id`, `key`
+- **Update Fragment**
+  - **Function**: `m_update_fragment`
+  - **Description**: Updates a key in a fragment.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `_fragment_id` (u32): The unique identifier for the fragment.
+    - `id` (u16): The index of the key to update.
+    - `key` ([u8; 32]): The updated 32-byte key.
+  - **Validation**:
+    - The `id` must be within the range of existing keys.
 
-- **Delete Storage Pointer**
-  - **Function**: `delete_sp`
-  - **Description**: Deletes a key from the storage pointer.
-  - **Parameters**: `locker_id`, `sp_id`, `id`
+- **Delete Fragment**
+  - **Function**: `m_delete_fragment`
+  - **Description**: Deletes a key from a fragment.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `_fragment_id` (u32): The unique identifier for the fragment.
+    - `id` (u16): The index of the key to delete.
+  - **Validation**:
+    - The `id` must be within the range of existing keys.
 
 ---
 
@@ -88,57 +152,70 @@ The `eternity_sc` program provides functionality for managing user profiles, loc
   - **Description**: Creates a vault for managing tokens.
 
 - **Buy Token**
-  - **Function**: `buy_token`
+  - **Function**: `m_buy_token`
   - **Description**: Buys tokens using lamports.
-  - **Parameters**: `amount`
+  - **Parameters**:
+    - `amount` (u64): The number of lamports to spend.
   - **Ownership Check**: Ensures only the vault owner can buy.
+  - **Validation**:
+    - The user must have sufficient lamports.
 
 - **Take Token**
-  - **Function**: `take_token`
+  - **Function**: `m_take_token`
   - **Description**: Withdraws tokens from the vault.
-  - **Parameters**: `amount`
+  - **Parameters**:
+    - `amount` (u64): The number of lamports to withdraw.
   - **Ownership Check**: Ensures only the vault owner can withdraw.
+  - **Validation**:
+    - The vault must have sufficient tokens and lamports.
 
 ---
 
 ## Error Codes
 
-- `ProfileNotFound`: Profile not found.
-- `ProfileAlreadyExists`: Profile already exists.
-- `LockerNotFound`: Locker not found.
-- `LockerAlreadyExists`: Locker already exists.
-- `LockerLimitExceeded`: Maximum number of lockers exceeded.
-- `StoragePointerGroupNotFound`: Storage pointer group not found.
-- `StoragePointerGroupAlreadyExists`: Storage pointer group already exists.
-- `StoragePointerGroupLimitExceeded`: Maximum number of storage pointer groups exceeded.
-- `DataNotValid`: Input data is invalid.
-- `UnAuthorized`: Unauthorized access.
-- `LamportNotEnough`: Insufficient lamports.
+- **Personality Errors**
+  - `ProfileInputDataNotValid`: Invalid profile data.
+
+- **Relic Errors**
+  - `RelicInputDataNotValid`: Invalid relic data.
+
+- **Fragment Errors**
+  - `FragmentDataLimitExceeded`: Maximum number of fragments exceeded.
+  - `FragmentDataNotFound`: Fragment data not found.
+
+- **Other Errors**
+  - `UnAuthorized`: Unauthorized access.
+  - `LamportNotEnough`: Insufficient lamports.
 
 ---
 
 ## Helper Functions
 
-- **`transfer_lamports`**: Handles lamport transfers between accounts.
-- **`calculate_rent_and_size`**: Calculates rent and size for account reallocations.
+- **`transfer_lamports`**
+  - **Description**: Handles lamport transfers between accounts.
+  - **Parameters**: `from`, `to`, `amount`, `system_program`, `from_pda`
+
+- **`calculate_rent_and_size`**
+  - **Description**: Calculates rent and size for account reallocations.
+  - **Parameters**: `current_data_len`, `new_data_len`
 
 ---
 
 ## Account Definitions
 
-### Profile
+### Personality
 - **Fields**: `owner`, `name`, `age`, `hobbie`, `message`
 - **Validation**: Ensures field length constraints.
 
-### Locker
-- **Fields**: `owner`, `id`, `name`, `description`, `data_count`, `size`, `visibility`, `storage_pointer`
+### Relic
+- **Fields**: `owner`, `authority`, `name`, `description`, `data_count`, `size`, `visibility`, `storage_pointer`
 - **Validation**: Ensures field length constraints.
 
-### Storage Pointer
-- **Fields**: `owner`, `locker_id`, `id`, `data`, `data_count`, `next_sp`
+### Fragments
+- **Fields**: `owner`, `authority`, `fragment`, `data_alloc`, `next_fragments`
 
 ### Vault
-- **Fields**: `owner`, `token`
+- **Fields**: `owner`, `authority`, `token`
 
 ### Vault Lamport
 - **Fields**: Empty struct for lamport storage.
