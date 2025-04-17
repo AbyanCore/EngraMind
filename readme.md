@@ -74,11 +74,12 @@ For detailed documentation on each instruction, refer to the [Smart Contract Doc
 
 ### Program Structure
 
-The program is divided into the following modules:
-- **Instructions**: Core logic for managing personalities, relics, fragments, and vaults.
-- **Accounts**: Definitions for on-chain data structures.
-- **Error Codes**: Custom error handling for validation and ownership checks.
-- **Helper Functions**: Utility functions for lamport transfers and account reallocations.
+The program is divided into the following modules (located in the `/src` folder):
+- **instructions/**: Contains all instruction handlers for managing personalities, relics, fragments, and vaults.
+- **state/**: Defines on-chain data structures for personalities, relics, fragments, and vaults.
+- **errors.rs**: Provides custom error codes and messages for validation and ownership checks.
+- **utils.rs**: Includes helper functions for lamport transfers, account reallocations, and other utilities.
+- **lib.rs**: The main entry point for the program, registering all modules and instructions.
 
 ### Key Concepts
 
