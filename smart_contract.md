@@ -12,6 +12,7 @@ This document provides a comprehensive overview of the `eternity_sc` program, in
 3. [Error Codes](#error-codes)
 4. [Helper Functions](#helper-functions)
 5. [Account Definitions](#account-definitions)
+6. [Events](#events)
 
 ---
 
@@ -42,9 +43,15 @@ The `eternity_sc` program provides functionality for managing personalities, rel
   - **Function**: `update_personality`
   - **Description**: Updates an existing personality profile.
   - **Parameters**:
-    - Same as `create_personality`.
+    - `name` (String): The name of the personality. Maximum length: 100 characters.
+    - `age` (u16): The age of the personality.
+    - `hobbie` (Vec<String>): A list of hobbies. Maximum 5 hobbies, each up to 100 characters.
+    - `message` (String): A custom message. Maximum length: 300 characters.
   - **Ownership Check**: Ensures only the profile owner can update.
-  - **Validation**: Same as `create_personality`.
+  - **Validation**:
+    - `name` must not exceed 100 characters.
+    - `hobbie` must not exceed 5 items, and each item must not exceed 100 characters.
+    - `message` must not exceed 300 characters.
 
 - **Set Personality Message**
   - **Function**: `m_set_personality_message`
@@ -87,9 +94,10 @@ The `eternity_sc` program provides functionality for managing personalities, rel
     - `name` (String): The updated name of the relic. Maximum length: 50 characters.
     - `description` (String): The updated description of the relic. Maximum length: 300 characters.
     - `visibility` (bool): The visibility status of the relic.
-  - **Ownership Check**: Ensures only the relic owner can update.
+  - **Ownership Check**: Ensures only the relic owner or authority can update.
   - **Validation**:
-    - Same as `create_relic`.
+    - `name` must not exceed 50 characters.
+    - `description` must not exceed 300 characters.
 
 - **Set Relic Description**
   - **Function**: `m_set_relic_description`
@@ -97,7 +105,7 @@ The `eternity_sc` program provides functionality for managing personalities, rel
   - **Parameters**:
     - `_relic_id` (u32): The unique identifier for the relic.
     - `description` (String): The updated description. Maximum length: 300 characters.
-  - **Ownership Check**: Ensures only the relic owner can update.
+  - **Ownership Check**: Ensures only the relic owner or authority can update.
   - **Validation**:
     - `description` must not exceed 300 characters.
 
@@ -204,18 +212,70 @@ The `eternity_sc` program provides functionality for managing personalities, rel
 ## Account Definitions
 
 ### Personality
-- **Fields**: `owner`, `name`, `age`, `hobbie`, `message`
-- **Validation**: Ensures field length constraints.
+
+| Name   | Type         | Description                     | Validation                        |
+|--------|--------------|---------------------------------|-----------------------------------|
+| owner  | Pubkey       | The owner of the personality.   | -                                 |
+| name   | String       | The name of the personality.    | Maximum length: 100 characters.  |
+| age    | u16          | The age of the personality.     | -                                 |
+| hobbie | Vec<String>  | List of hobbies.                | Maximum 5 items, each up to 100 characters. |
+| message| String       | A custom message.               | Maximum length: 300 characters.  |
 
 ### Relic
-- **Fields**: `owner`, `authority`, `name`, `description`, `data_count`, `size`, `visibility`, `storage_pointer`
-- **Validation**: Ensures field length constraints.
+
+| Name            | Type         | Description                     | Validation                        |
+|-----------------|--------------|---------------------------------|-----------------------------------|
+| owner           | Pubkey       | The owner of the relic.         | -                                 |
+| authority       | Pubkey       | The authority of the relic.     | -                                 |
+| name            | String       | The name of the relic.          | Maximum length: 50 characters.   |
+| description     | String       | A description of the relic.     | Maximum length: 300 characters.  |
+| data_count      | u32          | Number of data entries.         | -                                 |
+| size            | u64          | Size of the relic.              | -                                 |
+| visibility      | bool         | Visibility status of the relic. | -                                 |
+| storage_pointer | Option<Pubkey>| Pointer to storage.            | -                                 |
 
 ### Fragments
-- **Fields**: `owner`, `authority`, `fragment`, `data_alloc`, `next_fragments`
+
+| Name           | Type         | Description                     | Validation                        |
+|----------------|--------------|---------------------------------|-----------------------------------|
+| owner          | Pubkey       | The owner of the fragment.      | -                                 |
+| authority      | Pubkey       | The authority of the fragment.  | -                                 |
+| fragment       | Vec<u8>      | Fragment data.                  | -                                 |
+| data_alloc     | u64          | Allocated data size.            | -                                 |
+| next_fragments | Option<Pubkey>| Pointer to the next fragment.  | -                                 |
 
 ### Vault
-- **Fields**: `owner`, `authority`, `token`
+
+| Name      | Type         | Description                     | Validation                        |
+|-----------|--------------|---------------------------------|-----------------------------------|
+| owner     | Pubkey       | The owner of the vault.         | -                                 |
+| authority | Pubkey       | The authority of the vault.     | -                                 |
+| token     | u64          | Number of tokens in the vault.  | -                                 |
 
 ### Vault Lamport
-- **Fields**: Empty struct for lamport storage.
+
+| Name | Type | Description              | Validation |
+|------|------|--------------------------|------------|
+| -    | -    | Empty struct for lamport storage. | - |
+
+---
+
+## Events
+
+### DataNotify
+
+- **Description**: Emitted when data is created, updated, or deleted.
+- **Fields**:
+  - `by` (Pubkey): The public key of the user performing the operation.
+  - `account` (Pubkey): The public key of the affected account.
+  - `message` (String): A message describing the operation.
+  - `operation` (Operation): The type of operation (`Create`, `Update`, `Delete`).
+
+### TokenNotify
+
+- **Description**: Emitted when tokens are transferred or manipulated.
+- **Fields**:
+  - `by` (Pubkey): The public key of the user performing the operation.
+  - `account` (Pubkey): The public key of the affected account.
+  - `message` (String): A message describing the operation.
+  - `amount` (u64): The amount of tokens involved in the operation.
