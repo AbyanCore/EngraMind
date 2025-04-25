@@ -19,7 +19,7 @@ describe("General Test", () => {
   it("Initialize Wallet", () => {
       provider = anchor.getProvider();
       wallet = provider.publicKey
-    })
+  })
   
   // it("Check All Locker", async () => {
   //   const data = await program.account.locker.all()
