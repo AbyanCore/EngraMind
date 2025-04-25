@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::events::{DataNotify, Operation};
+use crate::events::{AuthorityNotify, DataNotify, Operation};
 use crate::state::relic::*;
 use crate::utils::errors::{OtherError,RelicError};
 
@@ -140,6 +140,27 @@ pub fn m_set_relic_heir_handler(ctx: Context<ManageRelic>, _relic_id: u32, heir:
         account: ctx.accounts.relic.key(),
         message: "Relic heir updated".to_string(),
         operation: Operation::Update
+    });
+
+    Ok(())
+}
+pub fn m_set_relic_authority_handler(ctx: Context<ManageRelic>, _relic_id: u32, new_authority: Pubkey) -> Result<()> {
+    let relic = &mut ctx.accounts.relic;
+
+    // check permission
+    if ctx.accounts.signer.key() != relic.owner ||ctx.accounts.signer.key() != relic.authority {
+        return err!(OtherError::UnAuthorized);
+    }
+
+    let old_authority = relic.authority.clone();
+    relic.authority = new_authority;
+
+    emit!(AuthorityNotify {
+        by: ctx.accounts.signer.key(),
+        account: ctx.accounts.relic.key(),
+        message: "Relic authority updated".to_string(),
+        old_authority: old_authority,
+        new_authority: new_authority
     });
 
     Ok(())
