@@ -8,14 +8,12 @@ use crate::utils::{errors::*, helper::*};
 pub struct CreateFragments<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
 
     #[account(
         init,
         payer = signer,
         space = 8 + Fragments::INIT_SPACE,
-        seeds = [b"sp", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
+        seeds = [b"fragments", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
         bump
     )]
     pub fragments: Account<'info, Fragments>,
@@ -26,7 +24,7 @@ pub struct CreateFragments<'info> {
     
     #[account(
         mut,
-        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -39,19 +37,17 @@ pub struct CreateFragments<'info> {
 pub struct ManageFragments<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(mut)]
-    pub authority: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"sp", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
+        seeds = [b"fragments", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
         bump
     )]
     pub fragments: Account<'info, Fragments>,
     
     #[account(
         mut,
-        seeds = [b"locker", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -65,9 +61,7 @@ pub fn create_fragments_handler(ctx: Context<CreateFragments>,_relic_id: u32,_fr
     let fragments = &mut ctx.accounts.fragments;
     let account_info = &ctx.accounts.old_fragments;
 
-
     fragments.owner = ctx.accounts.signer.key();
-    fragments.authority = ctx.accounts.authority.key();
 
     if relic.fragments.is_some() {
         fragments.next_fragments = Some(account_info.key());
@@ -90,15 +84,8 @@ pub fn m_add_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_frag
         OtherError::UnAuthorized
     );
 
-    // check authority
-    require_keys_eq!(
-        ctx.accounts.authority.key(),
-        fragments.authority,
-        OtherError::UnAuthorized
-    );
-
     // check data count
-    if fragments.data_alloc >= 500 {
+    if fragments.data_alloc + 1 >= 500 {
         return err!(FragmentError::FragmentDataLimitExceeded);
     }
     
@@ -132,13 +119,6 @@ pub fn m_update_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_f
         fragments.owner,
         OtherError::UnAuthorized
     );
-
-    // check authority
-    require_keys_eq!(
-        ctx.accounts.authority.key(),
-        fragments.authority,
-        OtherError::UnAuthorized
-    );
     
     if fragments.data_alloc <= id {
         return err!(FragmentError::FragmentDataNotFound)
@@ -156,13 +136,6 @@ pub fn m_delete_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_f
     require_keys_eq!(
         ctx.accounts.signer.key(),
         fragments.owner,
-        OtherError::UnAuthorized
-    );
-
-    // check authority
-    require_keys_eq!(
-        ctx.accounts.authority.key(),
-        fragments.authority,
         OtherError::UnAuthorized
     );
 

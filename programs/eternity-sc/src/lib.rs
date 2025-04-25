@@ -12,9 +12,7 @@ use instructions::{
     fragments::*
 };
 
-declare_id!("4zEC44NxzuFsrQ3ZVXqnrP1UghjL29ARnY7a6xaz2WZb");
-
-const TOKEN_LAMPORT: u64 = 10;
+declare_id!("AZvZticEwFZPB2KYqcL2KrCJ164QY4rM1PgAH9AaoR8L");
 
 #[program]
 pub mod eternity_sc {
@@ -51,21 +49,24 @@ pub mod eternity_sc {
     pub fn m_set_relic_heir(ctx: Context<ManageRelic>, relic_id: u32, heir: Pubkey) -> Result<()> {
         m_set_relic_heir_handler(ctx, relic_id, heir)
     }
+    pub fn m_set_relic_authority(ctx: Context<ManageRelic>, relic_id: u32, new_authority: Pubkey) -> Result<()> {
+        m_set_relic_authority_handler(ctx, relic_id, new_authority)
+    }
 
     // FRAGMENTS INSTRUCTION
-    pub fn create_fragments(ctx: Context<CreateFragments>,relic_id: u32,fragment_id: u32) -> Result<()> {
-        create_fragments_handler(ctx, relic_id, fragment_id)
+    pub fn create_fragments(ctx: Context<CreateFragments>,relic_id: u32,fragments_id: u32) -> Result<()> {
+        create_fragments_handler(ctx, relic_id, fragments_id)
     }
 
     // FRAGMENTS MICRO INSTRUCTION
-    pub fn m_add_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragment_id: u32, key: [u8; 32]) -> Result<()> {
-        m_add_fragment_handler(ctx, relic_id, fragment_id, key)
+    pub fn m_add_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, key: [u8; 32]) -> Result<()> {
+        m_add_fragment_handler(ctx, relic_id, fragments_id, key)
     }
-    pub fn m_update_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragment_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
-        m_update_fragment_handler(ctx, relic_id, fragment_id, id, key)
+    pub fn m_update_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
+        m_update_fragment_handler(ctx, relic_id, fragments_id, id, key)
     }
-    pub fn m_delete_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragment_id: u32, id: u16) -> Result<()> {
-        m_delete_fragment_handler(ctx, relic_id, fragment_id, id)
+    pub fn m_delete_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, id: u16) -> Result<()> {
+        m_delete_fragment_handler(ctx, relic_id, fragments_id, id)
     }
 
     // VAULT INSTRUCTION
@@ -80,5 +81,4 @@ pub mod eternity_sc {
     pub fn m_take_token(ctx: Context<ManageVault>, amount: u64) -> Result<()> {
         m_take_token_handler(ctx, amount)
     }
-
 }
