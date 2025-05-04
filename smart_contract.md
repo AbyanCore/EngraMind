@@ -109,6 +109,22 @@ The `eternity_sc` program provides functionality for managing personalities, rel
   - **Validation**:
     - `description` must not exceed 300 characters.
 
+- **Set Relic Heir**
+  - **Function**: `m_set_relic_heir`
+  - **Description**: Assigns a new heir to the relic.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `heir` (Pubkey): The public key of the new heir.
+  - **Ownership Check**: Ensures only the relic owner or authority can update.
+
+- **Set Relic Authority**
+  - **Function**: `m_set_relic_authority`
+  - **Description**: Updates the authority of the relic.
+  - **Parameters**:
+    - `_relic_id` (u32): The unique identifier for the relic.
+    - `new_authority` (Pubkey): The public key of the new authority.
+  - **Ownership Check**: Ensures only the relic owner or authority can update.
+
 ---
 
 ### Fragment Management
@@ -150,6 +166,7 @@ The `eternity_sc` program provides functionality for managing personalities, rel
     - `id` (u16): The index of the key to delete.
   - **Validation**:
     - The `id` must be within the range of existing keys.
+    - The relic and fragment must have data to delete.
 
 ---
 
@@ -158,24 +175,33 @@ The `eternity_sc` program provides functionality for managing personalities, rel
 - **Create Vault**
   - **Function**: `create_vault`
   - **Description**: Creates a vault for managing tokens.
+  - **Parameters**: 
+    - None
+  - **Accounts**:
+    - `signer`: The account creating the vault
+    - `authority`: The authority over the vault
+    - `vault`: The vault account to be created
+    - `vault_lamport`: Storage account for lamports
 
 - **Buy Token**
   - **Function**: `m_buy_token`
   - **Description**: Buys tokens using lamports.
   - **Parameters**:
     - `amount` (u64): The number of lamports to spend.
-  - **Ownership Check**: Ensures only the vault owner can buy.
+  - **Ownership Check**: Ensures only the vault owner and authority can buy.
   - **Validation**:
     - The user must have sufficient lamports.
+  - **Token Conversion**: Each lamport is converted to 10 tokens.
 
 - **Take Token**
   - **Function**: `m_take_token`
   - **Description**: Withdraws tokens from the vault.
   - **Parameters**:
     - `amount` (u64): The number of lamports to withdraw.
-  - **Ownership Check**: Ensures only the vault owner can withdraw.
+  - **Ownership Check**: Ensures only the vault owner and authority can withdraw.
   - **Validation**:
-    - The vault must have sufficient tokens and lamports.
+    - The vault must have sufficient tokens (amount * TOKEN_LAMPORT).
+    - The vault lamport account must have sufficient lamports.
 
 ---
 
@@ -227,21 +253,21 @@ The `eternity_sc` program provides functionality for managing personalities, rel
 |-----------------|--------------|---------------------------------|-----------------------------------|
 | owner           | Pubkey       | The owner of the relic.         | -                                 |
 | authority       | Pubkey       | The authority of the relic.     | -                                 |
+| heir            | Option<Pubkey>| The heir of the relic.         | -                                 |
 | name            | String       | The name of the relic.          | Maximum length: 50 characters.   |
 | description     | String       | A description of the relic.     | Maximum length: 300 characters.  |
 | data_count      | u32          | Number of data entries.         | -                                 |
 | size            | u64          | Size of the relic.              | -                                 |
 | visibility      | bool         | Visibility status of the relic. | -                                 |
-| storage_pointer | Option<Pubkey>| Pointer to storage.            | -                                 |
+| fragments       | Option<Pubkey>| Pointer to fragments.          | -                                 |
 
 ### Fragments
 
 | Name           | Type         | Description                     | Validation                        |
 |----------------|--------------|---------------------------------|-----------------------------------|
 | owner          | Pubkey       | The owner of the fragment.      | -                                 |
-| authority      | Pubkey       | The authority of the fragment.  | -                                 |
-| fragment       | Vec<u8>      | Fragment data.                  | -                                 |
-| data_alloc     | u64          | Allocated data size.            | -                                 |
+| fragment       | Vec<[u8; 32]>| Fragment data.                  | -                                 |
+| data_alloc     | u16          | Allocated data size.            | -                                 |
 | next_fragments | Option<Pubkey>| Pointer to the next fragment.  | -                                 |
 
 ### Vault
@@ -279,3 +305,13 @@ The `eternity_sc` program provides functionality for managing personalities, rel
   - `account` (Pubkey): The public key of the affected account.
   - `message` (String): A message describing the operation.
   - `amount` (u64): The amount of tokens involved in the operation.
+
+### AuthorityNotify
+
+- **Description**: Emitted when the authority of a relic is updated.
+- **Fields**:
+  - `by` (Pubkey): The public key of the user performing the operation.
+  - `account` (Pubkey): The public key of the affected relic.
+  - `message` (String): A message describing the operation.
+  - `old_authority` (Pubkey): The previous authority.
+  - `new_authority` (Pubkey): The new authority.
