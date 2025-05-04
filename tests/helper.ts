@@ -11,6 +11,8 @@ async function createWallet(amountSol: number,provider: any): Promise<Keypair>  
       signature: txAirdrop
     }, "confirmed")
 
+    console.log("WALLET:", wallet.publicKey.toBase58());
+
     return wallet;
 }
 
