@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::events::{DataNotify, Operation, TokenNotify};
 use crate::state::vault::*;
-use crate::utils::{errors::*,helper::*};
+use crate::utils::{errors::*,helper::*,consta::{VAULT_SEEDS, VAULT_LAMPORT_SEEDS}};
 
 const TOKEN_LAMPORT: u64 = 10;
 
@@ -17,7 +17,7 @@ pub struct CreateVault<'info> {
         init,
         payer = signer,
         space = 8 + Vault::INIT_SPACE,
-        seeds = [b"vault", signer.key.as_ref()],
+        seeds = [VAULT_SEEDS, signer.key.as_ref()],
         bump
     )]
     pub vault: Account<'info, Vault>,
@@ -26,7 +26,7 @@ pub struct CreateVault<'info> {
         init,
         payer = signer,
         space = 8 + VaultLamport::INIT_SPACE,
-        seeds = [b"vault_lamport", signer.key.as_ref()],
+        seeds = [VAULT_LAMPORT_SEEDS, signer.key.as_ref()],
         bump
     )]
     pub vault_lamport: Account<'info, VaultLamport>,
@@ -43,13 +43,13 @@ pub struct ManageVault<'info> {
 
     #[account(
         mut,
-        seeds = [b"vault", signer.key.as_ref()],
+        seeds = [VAULT_SEEDS, signer.key.as_ref()],
         bump
     )]
     pub vault: Account<'info, Vault>,
     #[account(
         mut,
-        seeds = [b"vault_lamport", signer.key.as_ref()],
+        seeds = [VAULT_LAMPORT_SEEDS, signer.key.as_ref()],
         bump
     )]
     pub vault_lamport: Account<'info, VaultLamport>,

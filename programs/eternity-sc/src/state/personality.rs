@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use crate::utils::consta::MAX_PERSONALITY_HOBBIES;
 
 #[account]
 #[derive(InitSpace)]
@@ -7,7 +8,7 @@ pub struct Personality {
     #[max_len(100)]
     pub name: String,
     pub age: u16,
-    #[max_len(5,100)]
+    #[max_len(MAX_PERSONALITY_HOBBIES,100)]
     pub hobbie: Vec<String>,
     #[max_len(300)]
     pub message: String,

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::events::{AuthorityNotify, DataNotify, Operation};
 use crate::state::relic::*;
-use crate::utils::errors::{OtherError,RelicError};
+use crate::utils::{errors::{OtherError,RelicError}, consta::RELIC_SEEDS};
 
 #[derive(Accounts)]
 #[instruction(relic_id: u32)]
@@ -16,7 +16,7 @@ pub struct CreateRelic<'info> {
         init,
         payer = signer,
         space = 8 + Relic::INIT_SPACE,
-        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [RELIC_SEEDS, signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -31,7 +31,7 @@ pub struct ManageRelic<'info> {
 
     #[account(
         mut,
-        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [RELIC_SEEDS, signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -40,7 +40,7 @@ pub struct ManageRelic<'info> {
 
 
 // RELIC INSTRUCTION
-pub fn create_relic_handler(ctx: Context<CreateRelic>,_relic_id: u32,name: String, description: String) -> Result<()> {
+pub fn create_relic_handler(ctx: Context<CreateRelic>,relic_id: u32,name: String, description: String) -> Result<()> {
     let relic = &mut  ctx.accounts.relic;
 
     // Validate Data
@@ -51,6 +51,7 @@ pub fn create_relic_handler(ctx: Context<CreateRelic>,_relic_id: u32,name: Strin
     
     // Set Data
     relic.set_inner(Relic {
+        relic_id: relic_id,
         owner: ctx.accounts.signer.key(),
         authority: ctx.accounts.authority.key(),
         heir: None,

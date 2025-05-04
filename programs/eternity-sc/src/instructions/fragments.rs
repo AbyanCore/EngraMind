@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 
 use crate::state::{fragments::*, relic::*};
-use crate::utils::{errors::*, helper::*};
+use crate::utils::consta::{MAX_FRAGMENTS, MAX_FRAGMENT_SIZE};
+use crate::utils::{errors::*, helper::*, consta::{RELIC_SEEDS, FRAGMENTS_SEEDS}};
 
 #[derive(Accounts)]
 #[instruction(relic_id: u32,fragments_id: u32)]
@@ -13,7 +14,7 @@ pub struct CreateFragments<'info> {
         init,
         payer = signer,
         space = 8 + Fragments::INIT_SPACE,
-        seeds = [b"fragments", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
+        seeds = [FRAGMENTS_SEEDS, signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
         bump
     )]
     pub fragments: Account<'info, Fragments>,
@@ -24,7 +25,7 @@ pub struct CreateFragments<'info> {
     
     #[account(
         mut,
-        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [RELIC_SEEDS, signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -40,14 +41,14 @@ pub struct ManageFragments<'info> {
 
     #[account(
         mut,
-        seeds = [b"fragments", signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
+        seeds = [FRAGMENTS_SEEDS, signer.key.as_ref(), relic_id.to_le_bytes().as_ref(), fragments_id.to_le_bytes().as_ref()],
         bump
     )]
     pub fragments: Account<'info, Fragments>,
     
     #[account(
         mut,
-        seeds = [b"relic", signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
+        seeds = [RELIC_SEEDS, signer.key.as_ref(), relic_id.to_le_bytes().as_ref()],
         bump
     )]
     pub relic: Account<'info, Relic>,
@@ -56,11 +57,12 @@ pub struct ManageFragments<'info> {
 }
 
 // FRAGMENTS INSTRUCTION
-pub fn create_fragments_handler(ctx: Context<CreateFragments>,_relic_id: u32,_fragment_id: u32) -> Result<()> {
+pub fn create_fragments_handler(ctx: Context<CreateFragments>,_relic_id: u32,fragment_id: u32) -> Result<()> {
     let relic = &mut  ctx.accounts.relic;
     let fragments = &mut ctx.accounts.fragments;
     let account_info = &ctx.accounts.old_fragments;
 
+    fragments.fragments_id = fragment_id;
     fragments.owner = ctx.accounts.signer.key();
 
     if relic.fragments.is_some() {
@@ -73,7 +75,7 @@ pub fn create_fragments_handler(ctx: Context<CreateFragments>,_relic_id: u32,_fr
 }
 
 // FRAGMENTS MICRO INSTRUCTION
-pub fn m_add_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, key: [u8; 32]) -> Result<()> {
+pub fn m_add_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, key: [u8; MAX_FRAGMENT_SIZE]) -> Result<()> {
     let fragments = &mut ctx.accounts.fragments;
     let relic = &mut ctx.accounts.relic;
 
@@ -85,13 +87,13 @@ pub fn m_add_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_frag
     );
 
     // check data count
-    if fragments.data_alloc + 1 >= 500 {
+    if fragments.data_alloc + 1 >= MAX_FRAGMENTS {
         return err!(FragmentError::FragmentDataLimitExceeded);
     }
     
     let (new_size, addtional_rent) = calculate_rent_and_size(
         fragments.to_account_info().data_len(),
-        8 + Fragments::INIT_SPACE + (fragments.data_alloc + 1) as usize * 32
+        8 + Fragments::INIT_SPACE + (fragments.data_alloc + 1) as usize * MAX_FRAGMENT_SIZE
     )?;
     
     transfer_lamports(
@@ -110,7 +112,7 @@ pub fn m_add_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_frag
     
     Ok(())
 }
-pub fn m_update_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
+pub fn m_update_fragment_handler(ctx: Context<ManageFragments>,_relic_id: u32,_fragment_id: u32, id: u16, key: [u8; MAX_FRAGMENT_SIZE]) -> Result<()> {
     let fragments = &mut ctx.accounts.fragments;
     
     // check ownership 

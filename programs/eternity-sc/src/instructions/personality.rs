@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::{events::{DataNotify,Operation}, state::personality::*};
-use crate::utils::errors::{PersonalityError, OtherError};
+use crate::utils::{errors::{PersonalityError, OtherError}, consta::PERSONALITY_SEEDS};
 
 #[derive(Accounts)]
 pub struct CreatePersonality<'info> {
@@ -11,7 +11,7 @@ pub struct CreatePersonality<'info> {
         init,
         payer = signer,
         space = 8 + Personality::INIT_SPACE,
-        seeds = [b"personality", signer.key.as_ref()],
+        seeds = [PERSONALITY_SEEDS, signer.key.as_ref()],
         bump
     )]
     pub personality: Account<'info, Personality>,
@@ -25,7 +25,7 @@ pub struct ManagePersonality<'info> {
 
     #[account(
         mut,
-        seeds = [b"personality", signer.key.as_ref()],
+        seeds = [PERSONALITY_SEEDS, signer.key.as_ref()],
         bump
     )]
     pub personality: Account<'info, Personality>,

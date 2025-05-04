@@ -12,10 +12,14 @@ use instructions::{
     fragments::*
 };
 
+use crate::utils::consta::MAX_FRAGMENT_SIZE;
+
 declare_id!("AZvZticEwFZPB2KYqcL2KrCJ164QY4rM1PgAH9AaoR8L");
 
 #[program]
 pub mod eternity_sc {
+    use crate::utils::consta::MAX_FRAGMENT_SIZE;
+
     use super::*;
 
     // PERSONALITY INSTRUCTION
@@ -59,10 +63,10 @@ pub mod eternity_sc {
     }
 
     // FRAGMENTS MICRO INSTRUCTION
-    pub fn m_add_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, key: [u8; 32]) -> Result<()> {
+    pub fn m_add_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, key: [u8; MAX_FRAGMENT_SIZE]) -> Result<()> {
         m_add_fragment_handler(ctx, relic_id, fragments_id, key)
     }
-    pub fn m_update_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, id: u16, key: [u8; 32]) -> Result<()> {
+    pub fn m_update_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, id: u16, key: [u8; MAX_FRAGMENT_SIZE]) -> Result<()> {
         m_update_fragment_handler(ctx, relic_id, fragments_id, id, key)
     }
     pub fn m_delete_fragment(ctx: Context<ManageFragments>,relic_id: u32,fragments_id: u32, id: u16) -> Result<()> {

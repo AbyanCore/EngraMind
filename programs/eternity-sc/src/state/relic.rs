@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct Relic {
+    pub relic_id: u32,
     pub owner: Pubkey,
     pub authority: Pubkey,
     pub heir: Option<Pubkey>,
