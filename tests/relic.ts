@@ -104,16 +104,16 @@ describe("Relic Test", () => {
       const relicId = 1;
       const fragmentsId = 1;
 
-      const tx1 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Keypair.generate().publicKey.toBuffer())).accounts({
+      const tx1 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Buffer.alloc(36))).accounts({
         signer: wallet.publicKey
       }).signers([wallet]).rpc()
-      const tx2 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Keypair.generate().publicKey.toBuffer())).accounts({
+      const tx2 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Buffer.alloc(36))).accounts({
         signer: wallet.publicKey
       }).signers([wallet]).rpc()
-      const tx3 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Keypair.generate().publicKey.toBuffer())).accounts({
+      const tx3 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Buffer.alloc(36))).accounts({
         signer: wallet.publicKey
       }).signers([wallet]).rpc()
-      const tx4 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Keypair.generate().publicKey.toBuffer())).accounts({
+      const tx4 = await program.methods.mAddFragment(relicId, fragmentsId, Array.from(Buffer.alloc(36))).accounts({
         signer: wallet.publicKey
       }).signers([wallet]).rpc()
 
@@ -140,7 +140,7 @@ describe("Relic Test", () => {
     const relicId = 1;
     const fragmentsId = 1;
 
-    const tx = await program.methods.mUpdateFragment(relicId, fragmentsId, 1, Array.from(Keypair.generate().publicKey.toBuffer())).accounts({
+    const tx = await program.methods.mUpdateFragment(relicId, fragmentsId, 1, Array.from(Buffer.alloc(36))).accounts({
       signer: wallet.publicKey
     }).signers([wallet]).rpc()
 
